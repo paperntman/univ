@@ -194,7 +194,7 @@ university-admission-api/
         *   PostgreSQL 드라이버 (예: `github.com/lib/pq` 또는 `github.com/jackc/pgx/v5`)
         *   환경변수 관리 (예: `github.com/joho/godotenv`)
         *   데이터베이스 마이그레이션 도구 (예: Goose `github.com/pressly/goose/v3`)
-    *   [ ] `.gitignore` 파일 작성
+    *   [O] `.gitignore` 파일 작성
     *   [ ] `README.md` 기본 내용 작성
     *   [ ] `.env.example` 파일 작성 및 `.env` 파일 생성 (DB 접속 정보 등)
 

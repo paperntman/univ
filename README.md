@@ -1,12 +1,20 @@
-# 대학 입시 정보 서비스 API 명세
+# 대학 입시 정보 시각화 서비스 백엔드 API 업데이트 요청
 
-## 1. 초기 지도 데이터 로딩
+## 변경 요약
 
-### `GET /map/initial-data`
+기존 내신 성적 입력 방식에 '교과구분종류' 항목이 추가됨에 따라, 관련 API의 요청 및 응답 명세 변경이 필요합니다. 주요 변경 사항은 다음과 같습니다.
 
-초기 지도에 표시될 대학 마커들의 기본 정보를 가져옵니다.
+1.  **과목 목록 조회 API (`GET /api/subjects`)**:
+    *   '교과구분종류' 목록을 조회하는 기능 추가
+    *   선택된 '교과구분종류'에 따른 '교과' 목록을 조회하는 기능 추가
+    *   기존 '교과' 선택에 따른 '과목' 목록 조회 기능 유지 (명칭 및 설명 명확화)
+2.  **대학 필터링 API (`POST /api/universities/filter`)**:
+    *   사용자 내신 성적 데이터(`userGrades.naesin`)에 '교과구분종류 코드' 및 '교과구분종류명' 필드 추가
 
--   **Method:** `GET`
+## 1. 초기 대학 마커 데이터 로드 (변경 없음)
+
+-   **Endpoint:** `GET /map/initial-data`
+-   **Purpose:** 지도에 표시할 초기 대학 목록 및 위치 정보를 가져옵니다.
 -   **Request Parameters:** 없음
 -   **Request Body:** 없음
 -   **Response Body:** `InitialUniversityData[]` (JSON Array)
@@ -17,25 +25,20 @@
         "universityId": "string", // 대학 고유 ID
         "universityName": "string", // 대학명
         "location": {
-          "latitude": "number",   // 위도
-          "longitude": "number"   // 경도
+          "latitude": "number", // 위도
+          "longitude": "number" // 경도
         }
       }
       // ... more universities
     ]
     ```
 
-    -   `InitialUniversityData`는 `UniversityBase` 타입과 동일합니다.
+## 2. 학과 검색 자동완성 제안 (변경 없음)
 
-## 2. 학과 검색 자동 완성
-
-### `GET /api/departments/suggest`
-
-사용자가 입력하는 학과명에 따라 추천 학과 목록을 제공합니다.
-
--   **Method:** `GET`
+-   **Endpoint:** `GET /api/departments/suggest`
+-   **Purpose:** 사용자가 입력한 검색어에 따라 학과명 자동완성 목록을 제공합니다.
 -   **Request Parameters:**
-    -   `query` (string, URL-encoded): 사용자가 입력한 검색어
+    -   `query` (string): 사용자가 입력한 학과 검색어
 -   **Request Body:** 없음
 -   **Response Body:** `DepartmentSuggestion[]` (JSON Array)
 
@@ -43,210 +46,144 @@
     [
       {
         "departmentName": "string", // 추천 학과명
-        "keywords": ["string"]      // 관련 키워드 목록
+        "keywords": ["string", "string"] // 관련 키워드 목록 (선택 사항)
       }
       // ... more suggestions
     ]
     ```
 
-## 3. 과목 목록 조회
+## 3. 과목 목록 조회 (업데이트됨)
 
-### `GET /api/subjects`
-
-내신 과목 또는 수능 선택 과목 등의 목록을 조회합니다.
-
--   **Method:** `GET`
+-   **Endpoint:** `GET /api/subjects`
+-   **Purpose:** 특정 유형에 따른 '교과구분종류', '교과', '과목' 또는 수능 선택과목 목록을 가져옵니다.
 -   **Request Parameters:**
-    -   `type` (string): 조회할 과목의 종류. 다음 값 중 하나:
-        -   `"naesin"`: 내신 과목 목록
-        -   `"suneung_국어"`: 수능 국어 선택 과목 목록
-        -   `"suneung_수학"`: 수능 수학 선택 과목 목록
-        -   `"suneung_탐구"`: 수능 탐구 과목 목록
+    -   `type` (string): 조회할 목록 유형. 다음 값 중 하나:
+        -   `"naesin_curriculum_classifications"`: (신규) 내신 '교과구분종류' 목록 (예: 일반 교과, 진로 선택 교과 등).
+        -   `"naesin_curriculums_for_classification"`: (신규) 특정 '교과구분종류'에 속하는 '교과' 목록. 이 경우 `classificationCode` 파라미터가 추가로 필요합니다.
+        -   `"naesin_subjects_for_curriculum"`: 특정 '교과'에 속하는 '과목' 목록. 이 경우 `curriculumCode` 파라미터가 추가로 필요합니다.
+        -   `"naesin_subjects_all"`: (기존 유지) 모든 내신 '과목'의 전체 목록 (UI 필터링용 또는 초기 데이터 로드용).
+        -   `"suneung_국어"`: (기존 유지) 수능 국어 선택 과목 목록.
+        -   `"suneung_수학"`: (기존 유지) 수능 수학 선택 과목 목록.
+        -   `"suneung_탐구"`: (기존 유지) 수능 탐구 과목 목록.
+    -   `classificationCode` (string, Optional): `type`이 `"naesin_curriculums_for_classification"`일 때 필수. 조회할 교과구분종류의 코드.
+    -   `curriculumCode` (string, Optional): `type`이 `"naesin_subjects_for_curriculum"`일 때 필수. 조회할 교과의 코드.
 -   **Request Body:** 없음
 -   **Response Body:** `ApiSubjectInfo[]` (JSON Array)
 
     ```json
+    // 공통 ApiSubjectInfo 구조:
+    // {
+    //   "subjectCode": "string", // 코드 (교과구분종류 코드, 교과 코드, 과목 코드 등)
+    //   "subjectName": "string", // 명칭 (교과구분종류명, 교과명, 과목명 등)
+    //   "parentCode": "string | undefined" // 상위 코드 (예: 과목의 경우 교과 코드, 교과의 경우 교과구분종류 코드)
+    // }
+
+    // 예시: type="naesin_curriculum_classifications"
     [
       {
-        "subjectCode": "string", // 과목 코드
-        "subjectName": "string"  // 과목명
+        "subjectCode": "CLASS_COMMON", // 교과구분종류 코드
+        "subjectName": "일반 교과"      // 교과구분종류명
+      },
+      {
+        "subjectCode": "CLASS_CAREER",
+        "subjectName": "진로 선택 교과"
       }
-      // ... more subjects
+      // ... more curriculum classifications
+    ]
+
+    // 예시: type="naesin_curriculums_for_classification", classificationCode="CLASS_COMMON"
+    [
+      {
+        "subjectCode": "CURR_KOR",    // 교과 코드
+        "subjectName": "국어",        // 교과명
+        "parentCode": "CLASS_COMMON"  // 상위 교과구분종류 코드
+      },
+      {
+        "subjectCode": "CURR_MATH",
+        "subjectName": "수학",
+        "parentCode": "CLASS_COMMON"
+      }
+      // ... more curriculums for the classification
+    ]
+
+    // 예시: type="naesin_subjects_for_curriculum", curriculumCode="CURR_MATH"
+    [
+      {
+        "subjectCode": "MATH001",    // 과목 코드
+        "subjectName": "수학Ⅰ",      // 과목명
+        "parentCode": "CURR_MATH"  // 상위 교과 코드
+      },
+      {
+        "subjectCode": "MATH002",
+        "subjectName": "미적분",
+        "parentCode": "CURR_MATH"
+      }
+      // ... more subjects for the curriculum
     ]
     ```
 
-## 4. 수능 시험 등급컷 정보 조회
+## 4. 수능 시험 등급컷 정보 조회 (변경 없음)
 
-### `GET /api/exam-grade-cuts`
-
-특정 수능 시험(또는 모의고사)의 과목별 등급컷 정보를 조회합니다.
-
--   **Method:** `GET`
+-   **Endpoint:** `GET /api/exam-grade-cuts`
+-   **Purpose:** 특정 연도와 월에 해당하는 수능 (또는 모의평가)의 과목별 등급컷 정보를 가져옵니다.
 -   **Request Parameters:**
-    -   `year` (string, e.g., "2024"): 시험 연도
-    -   `month` (string, e.g., "11", "09", "06"): 시험 월
+    -   `year` (string): 시험 연도 (예: "2024")
+    -   `month` (string): 시험 월 (예: "11" for CSAT, "06" for June mock exam)
 -   **Request Body:** 없음
--   **Response Body:** `SuneungExamCutInfoFromAPI` (JSON Object)
+-   **Response Body:** `SuneungExamCutInfoFromAPI` (JSON Object) - 기존 명세와 동일
 
-    ```json
-    {
-      "examName": "string", // 시험명 (예: "2024년 11월 수능")
-      "subjects": { // 과목별 등급컷 데이터
-        "국어": {
-          "언어와 매체": [ // 선택 과목명
-            { "rawScoreMin": 90, "rawScoreMax": 100, "standardScore": 135, "percentile": 98, "grade": 1 },
-            // ... more cut lines for this option
-          ],
-          "화법과 작문": [ /* ... */ ]
-        },
-        "수학": {
-          "미적분": [ /* ... */ ],
-          "기하": [ /* ... */ ],
-          "확률과 통계": [ /* ... */ ]
-        },
-        "영어": [ // 선택 과목 없는 경우 (절대 평가)
-          { "rawScoreMin": 90, "grade": 1 },
-          { "rawScoreMin": 80, "rawScoreMax": 89, "grade": 2 }
-          // ... more cut lines
-        ],
-        "한국사": [ /* ... */ ],
-        "생활과 윤리": [ // 탐구 과목 (과목명이 키)
-           { "rawScoreMin": 45, "standardScore": 70, "percentile": 96, "grade": 1 },
-           // ... more cut lines
-        ]
-        // ... other explorer subjects
-      }
-    }
-    ```
-    -   `ExamGradeCutMappingItem`: `{ rawScoreMin?: number, rawScoreMax?: number, standardScore?: number, percentile?: number, grade: number }`
-        -   `rawScoreMin`은 해당 등급/점수를 받기 위한 최소 원점수 (이상).
-        -   `rawScoreMax`는 해당 등급/점수를 받기 위한 최대 원점수 (이하). 둘 다 생략될 수 있거나 하나만 존재할 수 있음.
-        -   `standardScore`, `percentile`은 선택적으로 제공될 수 있습니다.
+## 5. 대학 필터링 (업데이트됨)
 
-## 5. 대학 필터링
-
-### `POST /api/universities/filter`
-
-사용자의 성적 정보와 필터 조건을 바탕으로 지원 가능한 대학 및 학과 목록을 필터링하여 반환합니다.
-
--   **Method:** `POST`
--   **Headers:**
-    -   `Content-Type: application/json`
+-   **Endpoint:** `POST /api/universities/filter`
+-   **Purpose:** 사용자 성적 및 필터 조건에 따라 대학 정보를 필터링하여 반환합니다.
 -   **Request Body:** (JSON Object)
 
     ```json
     {
       "userGrades": {
-        "naesin": { // ApiNaesinGrades: 키는 "학년-학기" (예: "1-1", "3-1")
-          "1-1": [
+        "naesin": { // ApiNaesinGrades: Record<string (e.g., "1-1", "3-1"), UserNaesinSubject[]>
+          "1-1": [ // 학년-학기
             {
-              // "id"는 클라이언트 UI용이므로 API는 무시 가능
-              "subjectCode": "string", // 과목 코드 (없으면 "N/A" 또는 유사값 가능)
-              "subjectName": "string", // 과목명
-              "grade": "number | null",       // 등급
-              "credits": "number | null",     // 이수단위
-              "rawScore": "number | null",    // 원점수 (선택)
-              "subjectMean": "number | null", // 과목 평균 (선택)
-              "stdDev": "number | null"       // 표준편차 (선택)
+              // "id": "string", // UI 내부용 ID, 백엔드에서 무시 가능
+              "curriculumClassificationCode": "string | null", // (신규) 교과구분종류 코드
+              "curriculumClassificationName": "string | null", // (신규) 교과구분종류명
+              "curriculumAreaCode": "string | null", // 교과 코드 (기존의 curriculumAreaCode, 예: "CURR_MATH")
+              "curriculumAreaName": "string | null", // 교과명 (기존의 curriculumAreaName, 예: "수학")
+              "subjectCode": "string | null",      // 과목 코드 (예: "MATH001")
+              "subjectName": "string",             // 과목명 (예: "수학Ⅰ")
+              "grade": "number | null",            // 등급
+              "credits": "number | null",          // 이수단위
+              "rawScore": "number | null",         // 원점수 (선택)
+              "subjectMean": "number | null",      // 과목 평균 (선택)
+              "stdDev": "number | null",           // 표준편차 (선택)
+              "studentCount": "number | null",     // 수강자수
+              "achievementLevel": "string | null", // 성취도 (예: 'A', 'P')
+              "distributionA": "number | null",    // 성취도 A 분포 (%)
+              "distributionB": "number | null",    // 성취도 B 분포 (%)
+              "distributionC": "number | null"     // 성취도 C 분포 (%)
             }
-            // ... more subjects for this semester
-          ],
-          // ... other semesters (3학년 2학기는 포함되지 않음)
+            // ... more subjects for "1-1"
+          ]
+          // ... "1-2", "2-1", "2-2", "3-1" (3학년 2학기는 일반적으로 제외)
         },
-        "suneung": { // UserSuneungGrades
-          "examYear": "number | null",    // 응시 연도
-          "examMonth": "number | null",   // 응시 월
-          "examIdentifierForCutInfo": "string", // 등급컷 정보 요청 시 사용된 시험 식별자 (예: "202411_csat")
-          "subjects": {
-            "korean": { /* UserSuneungSubjectDetailScore */ },
-            "math": { /* UserSuneungSubjectDetailScore */ },
-            "english": { /* UserSuneungSubjectDetailScore */ },
-            "history": { /* UserSuneungSubjectDetailScore */ },
-            "explorer1": { /* UserSuneungSubjectExplorerScore */ },
-            "explorer2": { /* UserSuneungSubjectExplorerScore */ }
-          }
+        "suneung": { // UserSuneungGrades - 기존 명세와 동일
+          // ...
         }
       },
-      "filterCriteria": {
-        "departmentKeywords": "string", // 검색한 학과명 또는 키워드
-        "admissionType": "string",      // 필터링할 입시 전형 ('경쟁률', '수능', '종합', '교과')
-        "scoreDifferenceTolerance": "number | null" // 점수차 허용치 (대학별 환산점수 기준, 선택)
+      "filterCriteria": { // 기존 명세와 동일
+        "departmentKeywords": "string | null",
+        "admissionType": "string",
+        "scoreDifferenceTolerance": "number"
       }
     }
     ```
-    -   `UserSuneungSubjectDetailScore`: `{ selectedOption?: string | null, rawScore: number | null, standardScore?: number | null, percentile?: number | null, grade?: number | null }`
-        -   `standardScore`, `percentile`, `grade`는 클라이언트에서 계산 후 전송될 수 있거나, 백엔드가 `rawScore`와 `examIdentifierForCutInfo`를 참조하여 내부적으로 사용할 수 있습니다. 현재 클라이언트는 이 값들을 채워서 보냅니다.
-    -   `UserSuneungSubjectExplorerScore`는 `UserSuneungSubjectDetailScore`를 확장하며 `subjectCode`와 `subjectName`을 추가로 가집니다.
 
--   **Response Body:** `FilteredUniversity[]` (JSON Array)
+-   **Response Body:** `FilteredUniversity[]` (JSON Array) - 기존 명세와 동일
 
-    ```json
-    [
-      {
-        "universityId": "string",
-        "universityName": "string",
-        "location": { "latitude": "number", "longitude": "number" },
-        "departmentName": "string", // 필터링된 (또는 요청된) 학과명
-        "admissionTypeResults": { // 전형 유형별 결과
-          "suneung": { /* AdmissionTypeSpecificResults (optional) */ },
-          "gyogwa": { /* AdmissionTypeSpecificResults (optional) */ },
-          "jonghap": { /* AdmissionTypeSpecificResults (optional) */ }
-        },
-        "overallCompetitionRate": "number | null" // 해당 학과의 작년도 전체 경쟁률 (선택)
-      }
-      // ... more filtered universities
-    ]
-    ```
-    -   `AdmissionTypeSpecificResults`:
-        ```json
-        {
-          "userCalculatedScore": "number | null",     // 사용자 예상 환산 점수
-          "lastYearAvgConvertedScore": "number | null", // 작년 평균 합격자 환산 점수
-          "lastYear70CutConvertedScore": "number | null", // 작년 70%컷 합격자 환산 점수
-          "suneungMinSatisfied": "boolean | null",    // 수능 최저학력기준 충족 여부
-          "qualitativeEvaluation": "string | null"  // 정성평가 결과 (주로 종합 전형)
-        }
-        ```
+## 6. 대학 상세 정보 (사이드바용) (변경 없음)
 
-## 6. 대학 상세 정보 (사이드바용)
-
-### `GET /api/universities/{universityId}/sidebar-details`
-
-특정 대학 및 학과에 대한 상세 정보를 사이드바에 표시하기 위해 조회합니다.
-
--   **Method:** `GET`
--   **Path Parameters:**
-    -   `universityId` (string): 조회할 대학의 고유 ID
--   **Request Parameters (Query):**
-    -   `departmentName` (string, URL-encoded): 조회할 학과명
-    -   `admissionTypeFilter` (string, URL-encoded): 현재 적용된 입시 전형 필터 ('경쟁률', '수능', '종합', '교과')
-    -   (선택적 확장 고려: `userGradesSnapshot` - 사용자의 성적 요약 정보를 보내 개인화된 결과를 받을 수 있도록 설계 가능)
+-   **Endpoint:** `GET /api/universities/{universityId}/sidebar-details`
+-   **Purpose:** 특정 대학 및 학과에 대한 상세 정보를 사이드바에 표시하기 위해 가져옵니다.
+-   **Request Parameters:** 기존 명세와 동일
 -   **Request Body:** 없음
--   **Response Body:** `UniversitySidebarDetails` (JSON Object)
-
-    ```json
-    {
-      "universityName": "string",
-      "departmentName": "string",
-      "logoUrl": "string | null", // 대학 로고 이미지 URL (선택)
-      "sidebarSections": [
-        {
-          "sectionTitle": "string",     // 섹션 제목 (예: "수능 위주 전형")
-          "isHighlighted": "boolean",   // 현재 필터 조건과 매칭되어 강조할지 여부
-          "items": [
-            {
-              "label": "string",        // 정보 항목 레이블 (예: "나의 예상 점수")
-              "value": "string | number", // 정보 항목 값
-              "link": "string | null",    // 외부 링크 URL (선택)
-              "type": "string | null"     // 항목 타입 (예: "link")
-            }
-            // ... more items in this section
-          ],
-          "notes": ["string"]       // 추가 참고사항 목록 (선택)
-        }
-        // ... more sections
-      ]
-    }
-    ```
-
----
+-   **Response Body:** `UniversitySidebarDetails` (JSON Object) - 기존 명세와 동일

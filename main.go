@@ -3,43 +3,41 @@ package main
 import (
 	"log"
 	"net/http"
+
+	// "your_project_name/handlers" 형식으로 import
+	// your_project_name은 go.mod 파일의 module 이름과 일치해야 합니다.
+	// 예: module myawesomeproject -> "myawesomeproject/handlers"
+	"univ/handlers" // <<--- 이 부분을 실제 모듈 이름으로 변경하세요!
 )
 
 func main() {
-	// 1. 정적 파일을 제공할 디렉토리 설정
-	// http.Dir("./static")은 현재 실행 파일 위치를 기준으로 "static" 폴더를 나타냅니다.
-	// http.FileServer는 이 디렉토리의 파일들을 HTTP를 통해 제공하는 핸들러를 생성합니다.
-	fileServer := http.FileServer(http.Dir("./static"))
+	// 1. 핸들러 패키지의 DB 초기화 함수 호출
+	handlers.InitDB()
+	// 프로그램 종료 시 DB 연결 닫기
+	defer handlers.CloseDB()
 
-	// 2. 특정 URL 경로와 파일 서버 핸들러 연결
-	// "/static/" URL 경로로 오는 요청은 fileServer가 처리하도록 합니다.
-	// http.StripPrefix는 URL에서 "/static/" 부분을 제거하고 파일 시스템 경로를 찾도록 합니다.
-	// 예: 클라이언트가 "/static/css/style.css"를 요청하면,
-	//     StripPrefix를 통해 "css/style.css"가 되고,
-	//     FileServer는 "./static/css/style.css" 파일을 찾아서 제공합니다.
-	http.Handle("/static/", http.StripPrefix("/static/", fileServer))
+	// 2. 대학 정보 API 라우트 설정
+	// "/map/initial-data" 경로로 오는 요청을 handlers.GetUniversitiesHandler 함수가 처리합니다.
+	// 이 핸들러는 정적 파일 핸들러보다 먼저 등록되어야 합니다.
+	http.HandleFunc("/map/initial-data", handlers.GetUniversitiesHandler)
+	http.HandleFunc("/api/subjects", handlers.Subject)
 
-	// 3. 루트 경로 ("/") 핸들러: index.html 파일을 직접 제공
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// 루트 경로가 아니면 404 Not Found 에러를 반환합니다.
-		// (이렇게 하면 /static/ 외의 다른 알 수 없는 경로는 404 처리됩니다)
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		// "./static/index.html" 파일을 클라이언트에게 제공합니다.
-		http.ServeFile(w, r, "./static/index.html")
-	})
+	// 3. 정적 파일 서버 설정
+	// "./app/dist" 디렉토리의 모든 파일을 제공합니다.
+	// 이 설정은 "/" 경로로 들어오는 모든 요청을 처리하며,
+	// 예를 들어 "/assets/index-Dr4Soqas.js"와 같은 하위 경로의 CSS/JS 파일도
+	// "./app/dist/assets/index-Dr4Soqas.js"에서 자동으로 찾아 제공하게 됩니다.
+	// 이렇게 하면 CSV, JS, CSS 파일들이 올바르게 로드됩니다.
+	http.Handle("/", http.FileServer(http.Dir("./beta_2/dist")))
 
 	// 서버 시작
-	log.Println("서버가 8080 포트에서 시작됩니다.")
-	log.Println("메인 페이지: http://localhost:8080")
-	log.Println("정적 파일 예시 (CSS): http://localhost:8080/static/css/style.css")
-	log.Println("정적 파일 예시 (JS): http://localhost:8080/static/js/script.js")
-	log.Println("정적 파일 예시 (Image): http://localhost:8080/static/images/gopher.png")
+	port := "8080" // 포트 번호를 변수로 관리하면 더 좋습니다.
+	log.Printf("서버가 %s 포트에서 시작됩니다.", port)
+	log.Printf("메인 페이지: http://localhost:%s/", port)
+	log.Printf("대학 정보 API: http://localhost:%s/api/universities", port)
 
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.Fatal("ListenAndServe 에러: ", err)
 	}
 }

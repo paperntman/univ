@@ -183,22 +183,22 @@ university-admission-api/
 ## 5. 개발 순서 및 단계별 목표
 
 ### 단계 0: 프로젝트 초기 설정
-    *   [ ] Go 개발 환경 구성 (Go 설치, GOPATH/GOROOT 설정 등)
-    *   [ ] PostgreSQL 설치 및 데이터베이스 생성
+    *   [O] Go 개발 환경 구성 (Go 설치, GOPATH/GOROOT 설정 등)
+    *   [O] PostgreSQL 설치 및 데이터베이스 생성
     *   [ ] 프로젝트 디렉토리 구조 생성
-    *   [ ] `go.mod` 초기화 (`go mod init <module_path>`)
-    *   [ ] 필요한 Go 패키지(라이브러리) 조사 및 초기 설치 (`go get`)
+    *   [O] `go.mod` 초기화 (`go mod init <module_path>`)
+    *   [O] 필요한 Go 패키지(라이브러리) 조사 및 초기 설치 (`go get`)
         *   웹 프레임워크 (예: Gin `github.com/gin-gonic/gin`)
         *   PostgreSQL 드라이버 (예: `github.com/lib/pq` 또는 `github.com/jackc/pgx/v5`)
         *   환경변수 관리 (예: `github.com/joho/godotenv`)
         *   데이터베이스 마이그레이션 도구 (예: Goose `github.com/pressly/goose/v3`)
     *   [O] `.gitignore` 파일 작성
-    *   [ ] `README.md` 기본 내용 작성
+    *   [O] `README.md` 기본 내용 작성
     *   [ ] `.env.example` 파일 작성 및 `.env` 파일 생성 (DB 접속 정보 등)
 
 ### 단계 1: 데이터베이스 스키마 설계 및 마이그레이션
     *   [ ] `migrations/` 디렉토리 생성 및 마이그레이션 도구 설정
-    *   [ ] `universities` 테이블 생성 마이그레이션 작성 및 실행
+    *   [O] `universities` 테이블 생성 마이그레이션 작성 및 실행
     *   [ ] `departments` 테이블 생성 마이그레이션 작성 및 실행
     *   [ ] `subjects_master` 테이블 생성 마이그레이션 작성 및 실행
     *   [ ] `exam_grade_cut_info` 테이블 생성 마이그레이션 작성 및 실행
@@ -220,7 +220,7 @@ university-admission-api/
 
 ### 단계 3: 간단한 조회 API 구현 (흐름 점검용)
     *   **`GET /map/initial-data` API 구현**
-        *   [ ] `internal/domain/university.go`: `University` 기본 구조체 정의
+        *   [O] `internal/domain/university.go`: `University` 기본 구조체 정의
         *   [ ] `internal/db/postgresql/repository/university_repo.go`: `GetAllUniversitiesForMap` 함수 구현 (ID, 이름, 위치만 조회)
         *   [ ] `internal/api/handlers/university_handler.go`: `/map/initial-data` 요청 처리 핸들러 구현
         *   [ ] `internal/api/router.go`: 해당 핸들러 라우팅

@@ -43,8 +43,16 @@ import { initializeUiUtilsDOM, showLoading } from './uiUtils';
 
 
 // --- DOM 요소 ---
-const departmentSearchInputEl = document.getElementById('department-search') as HTMLInputElement; 
-const departmentSuggestionsDivEl = document.getElementById('department-suggestions') as HTMLDivElement; 
+// 학과 검색 관련: 기존 input과 suggestions div는 제거되고, 새 모달 관련 요소들 추가
+const openDepartmentSearchModalButtonEl = document.getElementById('open-department-select-modal-button') as HTMLButtonElement;
+const departmentSelectModalEl = document.getElementById('department-select-modal') as HTMLDivElement;
+const majorCategorySelectEl = document.getElementById('major-category-select') as HTMLSelectElement;
+const mediumCategorySelectEl = document.getElementById('medium-category-select') as HTMLSelectElement;
+const minorCategorySelectEl = document.getElementById('minor-category-select') as HTMLSelectElement;
+const applyDepartmentSelectionButtonEl = document.getElementById('apply-department-selection-button') as HTMLButtonElement;
+const closeDepartmentModalButtonEl = document.getElementById('close-department-modal-button') as HTMLButtonElement;
+
+
 const enterGradesButtonEl = document.getElementById('enter-grades-button') as HTMLButtonElement; 
 const admissionTypeFilterSelectEl = document.getElementById('admission-type-filter') as HTMLSelectElement; 
 const scoreDifferenceToleranceInputEl = document.getElementById('score-difference-tolerance') as HTMLInputElement; 
@@ -120,9 +128,11 @@ function transformNaesinGradesForApi(internalNaesin: UserNaesinGrades): ApiNaesi
             if (subjects.length > 0) {
                 const apiSemesterKey = `${year}-${semester}`;
                 apiNaesin[apiSemesterKey] = subjects.map(s => ({
-                    id: s.id, 
-                    curriculumAreaCode: s.curriculumAreaCode,
-                    curriculumAreaName: s.curriculumAreaName,
+                    id: s.id,
+                    curriculumClassificationCode: s.curriculumClassificationCode, // 교과구분종류 코드
+                    curriculumClassificationName: s.curriculumClassificationName, // 교과구분종류명
+                    curriculumAreaCode: s.curriculumAreaCode, // 교과 코드
+                    curriculumAreaName: s.curriculumAreaName, // 교과명
                     subjectCode: s.subjectCode || "N/A", 
                     subjectName: s.subjectName, 
                     grade: s.grade,
@@ -195,8 +205,13 @@ async function handleFilterUpdate() {
 document.addEventListener('DOMContentLoaded', async () => {
     initializeUiUtilsDOM({
         loadingOverlay: loadingOverlayEl,
-        departmentSearchInput: departmentSearchInputEl,
-        departmentSuggestionsDiv: departmentSuggestionsDivEl
+        departmentSelectModal: departmentSelectModalEl,
+        majorCategorySelect: majorCategorySelectEl,
+        mediumCategorySelect: mediumCategorySelectEl,
+        minorCategorySelect: minorCategorySelectEl,
+        applyDepartmentSelectionButton: applyDepartmentSelectionButtonEl,
+        closeDepartmentModalButton: closeDepartmentModalButtonEl,
+        openDepartmentSearchModalButton: openDepartmentSearchModalButtonEl
     });
     initializeSidebarControls(sidebarDivEl, sidebarContentDivEl, closeSidebarButtonEl);
     initializeGradeModalDOM({

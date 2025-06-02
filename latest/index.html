@@ -36,13 +36,10 @@
             <div class="nav-section">
                 <h2>대학 입시 정보</h2>
             </div>
-            <!-- 학과 검색 섹션 -->
-            <div class="nav-section input-group">
-                <label for="department-search">학과 검색:</label>
-                <div id="department-input-wrapper">
-                    <input type="text" id="department-search" placeholder="학과명 입력...">
-                    <div id="department-suggestions" class="suggestions-list"></div> <!-- 학과 추천 목록 -->
-                </div>
+            <!-- 학과 검색 버튼 섹션 -->
+            <div class="nav-section">
+                <label for="open-department-select-modal-button" class="structural-placeholder-label">&nbsp;</label> <!-- 구조적 정렬용 보이지 않는 레이블 -->
+                <button id="open-department-select-modal-button">학과 검색</button>
                 <div class="form-element-spacer"></div> <!-- 레이아웃 정렬용 스페이서 -->
             </div>
             <!-- 성적 입력 버튼 섹션 -->
@@ -92,6 +89,35 @@
         <div id="loading-overlay" class="hidden">
             <div class="spinner"></div>
             <p>로딩 중...</p>
+        </div>
+    </div>
+
+    <!-- 학과 선택 모달 (기본 숨김) -->
+    <div id="department-select-modal" class="modal hidden" role="dialog" aria-labelledby="department-modal-title" aria-modal="true">
+        <div class="modal-content">
+            <button id="close-department-modal-button" class="modal-close-button" aria-label="Close department selection modal">&times;</button>
+            <h3 id="department-modal-title">학과 선택</h3>
+            <div class="department-select-group">
+                <label for="major-category-select">대분류:</label>
+                <select id="major-category-select" aria-label="대분류 선택">
+                    <option value="">-- 대분류 선택 --</option>
+                </select>
+            </div>
+            <div class="department-select-group">
+                <label for="medium-category-select">중분류:</label>
+                <select id="medium-category-select" aria-label="중분류 선택" disabled>
+                    <option value="">-- 중분류 선택 --</option>
+                </select>
+            </div>
+            <div class="department-select-group">
+                <label for="minor-category-select">소분류:</label>
+                <select id="minor-category-select" aria-label="소분류 선택" disabled>
+                    <option value="">-- 소분류 선택 --</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="apply-department-selection-button">선택 완료</button>
+            </div>
         </div>
     </div>
 
@@ -259,8 +285,11 @@
     <!-- 내신 과목 행 추가를 위한 숨겨진 템플릿 -->
     <template id="naesin-subject-row-template">
         <div class="naesin-subject-row">
+            <select class="naesin-subject-classification" aria-label="교과구분종류">
+                <!-- 교과구분종류 옵션은 JS로 채워짐 -->
+            </select>
             <select class="naesin-subject-curriculum" aria-label="교과">
-                <!-- 교과 옵션은 JS로 채워짐 -->
+                <!-- 교과 옵션은 교과구분종류 선택에 따라 JS로 채워짐 -->
             </select>
             <select class="naesin-subject-name" aria-label="과목명">
                 <!-- 과목명 옵션은 교과 선택에 따라 JS로 채워짐 -->

@@ -21,6 +21,10 @@ export interface InitialUniversityData extends UniversityBase {} // 초기 로�
 // --- 성적 입력 타입 ---
 export interface UserNaesinSubject { // 사용자 내신 과목 정보 (UI 및 내부 상태용)
     id: string; // UI에서 동적 행 관리를 위한 고유 ID
+    curriculumClassificationCode?: string | null; // 교과구분종류 코드 (신규)
+    curriculumClassificationName?: string; // 교과구분종류명 (신규)
+    curriculumAreaCode?: string | null; // 교과 영역 코드 (API에서 사용) -> '교과' 코드
+    curriculumAreaName?: string; // 교과 영역명 -> '교과명'
     subjectCode: string | null; // 과목 코드 (API에서 사용)
     subjectName: string; // 과목명 (표시 및 코드 없을 경우 매칭용)
     grade: number | null; // 등급
@@ -28,6 +32,11 @@ export interface UserNaesinSubject { // 사용자 내신 과목 정보 (UI 및 �
     rawScore?: number | null; // 원점수 (선택)
     subjectMean?: number | null; // 과목 평균 (선택)
     stdDev?: number | null; // 표준편차 (선택)
+    studentCount?: number | null; // 수강자수 (신규)
+    achievementLevel?: string | null; // 성취도 (신규, 예: 'A', 'B', 'P')
+    distributionA?: number | null; // 성취도별 분포 A (%) (신규)
+    distributionB?: number | null; // 성취도별 분포 B (%) (신규)
+    distributionC?: number | null; // 성취도별 분포 C (%) (신규)
 }
 
 export interface UserNaesinSemesterData { // 사용자 내신 학기별 데이터
@@ -109,16 +118,13 @@ export interface FilteredUniversity extends UniversityBase { // 필터링된 대
     overallCompetitionRate?: number; // 전체 경쟁률 (새 필드)
 }
 
-export interface DepartmentSuggestion { // 학과 검색 추천 결과
-    departmentName: string; // 추천 학과명
-    keywords: string[]; // 관련 키워드 목록
+// GET /api/subjects 응답 타입 (내신/수능 과목 목록)
+export interface ApiSubjectInfo { // 교과, 과목, 수능 선택과목 등에 공용으로 사용
+    subjectCode: string; // 코드 (교과 코드, 과목 코드 등)
+    subjectName: string; // 명칭 (교과명, 과목명 등)
+    parentCode?: string; // 상위 코드 (예: 과목의 경우 교과 코드, 교과의 경우 교과구분종류 코드)
 }
 
-// GET /api/subjects 응답 타입 (내신/수능 과목 목록)
-export interface ApiSubjectInfo {
-    subjectCode: string; // 과목 코드
-    subjectName: string; // 과목명
-}
 
 // GET /api/exam-grade-cuts 응답 타입 (수능 시험 등급컷)
 export interface ExamGradeCutMappingItem { // 등급컷 매핑 항목 (원점수 -> 표준점수/백분위/등급)

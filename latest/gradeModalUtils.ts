@@ -8,46 +8,50 @@ import {
     UserAllGrades, UserNaesinSubject, ApiSubjectInfo, SuneungExamCutInfoFromAPI, UserSuneungGrades, ExamGradeCutMappingItem, UserSuneungSubjectDetailScore, UserSuneungSubjectExplorerScore,
     UserNaesinGrades, UserNaesinYearData
 } from './types';
-import { 
-    userAllGrades, setUserAllGrades, 
-    curriculumAreasFromApi, // 교과 영역 목록
+import {
+    userAllGrades, setUserAllGrades,
+    curriculumClassificationsFromApi, // 교과구분종류 목록
     naesinAllRawSubjectsFromApi, // 모든 내신 과목 원시 목록
-    suneungExplorerSubjectsFromApi, suneungKoreanOptionsFromApi, suneungMathOptionsFromApi, 
-    currentSuneungExamCutInfo, 
-    updateUserSuneungGrades, 
-    initializeUserAllGrades as initializeGlobalUserAllGrades 
+    suneungExplorerSubjectsFromApi, suneungKoreanOptionsFromApi, suneungMathOptionsFromApi,
+    currentSuneungExamCutInfo,
+    updateUserSuneungGrades,
+    initializeUserAllGrades as initializeGlobalUserAllGrades
 } from './state';
-import { fetchSuneungExamCutInfo as apiFetchSuneungExamCutInfo, fetchSubjectsForCurriculumApi } from './api';
+import {
+    fetchSuneungExamCutInfo as apiFetchSuneungExamCutInfo,
+    fetchCurriculumsForClassificationApi,
+    fetchSubjectsForCurriculumApi
+} from './api';
 import { NAESIN_ACHIEVEMENT_LEVELS_STATIC } from './config';
 
 // SheetJS 전역 변수 선언
 declare var XLSX: any;
 
 // --- DOM 요소 변수 선언 ---
-let gradeInputModal: HTMLDivElement | null = null; 
-let modalTabsElements: NodeListOf<Element> | null = null; 
-let modalTabContentsElements: NodeListOf<Element> | null = null; 
-let naesinSubjectRowTemplate: HTMLTemplateElement | null = null; 
+let gradeInputModal: HTMLDivElement | null = null;
+let modalTabsElements: NodeListOf<Element> | null = null;
+let modalTabContentsElements: NodeListOf<Element> | null = null;
+let naesinSubjectRowTemplate: HTMLTemplateElement | null = null;
 let naesinGradeFormDivs: { [key: string]: HTMLDivElement | null } = {};
 
 // 수능 관련 DOM 요소
-let suneungExamSelector: HTMLSelectElement | null = null; 
-let suneungKoreanChoice: HTMLSelectElement | null = null; 
-let suneungKoreanRaw: HTMLInputElement | null = null; 
-let suneungKoreanCalculatedDiv: HTMLDivElement | null = null; 
-let suneungMathChoice: HTMLSelectElement | null = null; 
-let suneungMathRaw: HTMLInputElement | null = null; 
-let suneungMathCalculatedDiv: HTMLDivElement | null = null; 
-let suneungEnglishRaw: HTMLInputElement | null = null; 
-let suneungEnglishCalculatedDiv: HTMLDivElement | null = null; 
-let suneungHistoryRaw: HTMLInputElement | null = null; 
-let suneungHistoryCalculatedDiv: HTMLDivElement | null = null; 
-let suneungExplorer1Subject: HTMLSelectElement | null = null; 
-let suneungExplorer1Raw: HTMLInputElement | null = null; 
-let suneungExplorer1CalculatedDiv: HTMLDivElement | null = null; 
-let suneungExplorer2Subject: HTMLSelectElement | null = null; 
-let suneungExplorer2Raw: HTMLInputElement | null = null; 
-let suneungExplorer2CalculatedDiv: HTMLDivElement | null = null; 
+let suneungExamSelector: HTMLSelectElement | null = null;
+let suneungKoreanChoice: HTMLSelectElement | null = null;
+let suneungKoreanRaw: HTMLInputElement | null = null;
+let suneungKoreanCalculatedDiv: HTMLDivElement | null = null;
+let suneungMathChoice: HTMLSelectElement | null = null;
+let suneungMathRaw: HTMLInputElement | null = null;
+let suneungMathCalculatedDiv: HTMLDivElement | null = null;
+let suneungEnglishRaw: HTMLInputElement | null = null;
+let suneungEnglishCalculatedDiv: HTMLDivElement | null = null;
+let suneungHistoryRaw: HTMLInputElement | null = null;
+let suneungHistoryCalculatedDiv: HTMLDivElement | null = null;
+let suneungExplorer1Subject: HTMLSelectElement | null = null;
+let suneungExplorer1Raw: HTMLInputElement | null = null;
+let suneungExplorer1CalculatedDiv: HTMLDivElement | null = null;
+let suneungExplorer2Subject: HTMLSelectElement | null = null;
+let suneungExplorer2Raw: HTMLInputElement | null = null;
+let suneungExplorer2CalculatedDiv: HTMLDivElement | null = null;
 
 export function initializeGradeModalDOM(elements: {
     gradeInputModal: HTMLDivElement,
@@ -90,10 +94,10 @@ export function initializeGradeModalDOM(elements: {
 
 export function openGradeModal() {
     if (!gradeInputModal) return;
-    populateSuneungSubjectDropdowns(); 
-    renderNaesinGradesFromState(); 
-    renderSuneungGradesFromState(); 
-    gradeInputModal.classList.remove('hidden'); 
+    populateSuneungSubjectDropdowns();
+    renderNaesinGradesFromState();
+    renderSuneungGradesFromState();
+    gradeInputModal.classList.remove('hidden');
     const firstTab = gradeInputModal.querySelector('.tab-button');
     if (firstTab && !firstTab.classList.contains('active')) {
         (firstTab as HTMLElement).click();
@@ -101,13 +105,13 @@ export function openGradeModal() {
 }
 
 export function closeGradeModal() {
-    if (gradeInputModal) gradeInputModal.classList.add('hidden'); 
+    if (gradeInputModal) gradeInputModal.classList.add('hidden');
 }
 
 export function handleGradeModalTabClick(event: MouseEvent) {
     if (!modalTabsElements || !modalTabContentsElements) return;
     const clickedTab = event.target as HTMLElement;
-    if (!clickedTab.classList.contains('tab-button')) return; 
+    if (!clickedTab.classList.contains('tab-button')) return;
 
     modalTabsElements.forEach(tab => tab.classList.remove('active'));
     modalTabContentsElements.forEach(content => content.classList.remove('active'));
@@ -121,9 +125,9 @@ export function handleGradeModalTabClick(event: MouseEvent) {
 }
 
 function populateSelectWithOptions(
-    selectElement: HTMLSelectElement | null, 
-    optionsArray: (ApiSubjectInfo | string)[], 
-    placeholder: string, 
+    selectElement: HTMLSelectElement | null,
+    optionsArray: (ApiSubjectInfo | string)[],
+    placeholder: string,
     valueField: keyof ApiSubjectInfo | 'self' = 'subjectCode', // 'self' for string array
     nameField: keyof ApiSubjectInfo | 'self' = 'subjectName', // 'self' for string array
     clearFirst: boolean = true
@@ -131,7 +135,7 @@ function populateSelectWithOptions(
     if (!selectElement) return;
     const currentValue = selectElement.value;
     if(clearFirst) selectElement.innerHTML = `<option value="">${placeholder}</option>`;
-    
+
     optionsArray.forEach(item => {
         const option = document.createElement('option');
         if (typeof item === 'string') {
@@ -153,6 +157,13 @@ function populateSelectWithOptions(
 
     if (currentValue && Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
         selectElement.value = currentValue;
+    } else if (selectElement.options.length > 0 && !clearFirst && !currentValue) {
+        // If not clearing first (meaning appending), and no current value, don't auto-select first.
+        // If placeholder exists, it will be selected.
+    } else if (selectElement.options.length > 1 && clearFirst && placeholder && selectElement.options[0].value === "") {
+        // Default to placeholder if it exists and nothing was selected
+    } else if (selectElement.options.length > 0 && !currentValue) {
+        // selectElement.value = selectElement.options[0].value; // Auto-select first item if no placeholder and no value
     }
 }
 
@@ -169,19 +180,20 @@ export function addNaesinSubjectRow(year: 1 | 2 | 3, semester: 1 | 2) {
     if (!container || !naesinSubjectRowTemplate) return;
 
     const newSubjectId = `s${Date.now()}${Math.random().toString(16).slice(2)}`;
-    const newSubject: UserNaesinSubject = { 
-        id: newSubjectId, 
+    const newSubject: UserNaesinSubject = {
+        id: newSubjectId,
+        curriculumClassificationCode: null, curriculumClassificationName: "",
         curriculumAreaCode: null, curriculumAreaName: "",
-        subjectCode: null, subjectName: "", 
-        grade: null, credits: null, 
+        subjectCode: null, subjectName: "",
+        grade: null, credits: null,
         rawScore: null, subjectMean: null, stdDev: null,
         studentCount: null, achievementLevel: null,
         distributionA: null, distributionB: null, distributionC: null,
     };
-    
+
     const yearKey = `year${year}` as keyof UserAllGrades['naesin'];
     const semesterKey = `semester${semester}` as keyof UserAllGrades['naesin']['year1'];
-    
+
     userAllGrades.naesin[yearKey][semesterKey].subjects.push(newSubject);
     renderNaesinSemester(year, semester);
 }
@@ -189,7 +201,7 @@ export function addNaesinSubjectRow(year: 1 | 2 | 3, semester: 1 | 2) {
 export function removeNaesinSubjectRow(year: 1 | 2 | 3, semester: 1 | 2, subjectId: string) {
     const yearKey = `year${year}` as keyof UserAllGrades['naesin'];
     const semesterKey = `semester${semester}` as keyof UserAllGrades['naesin']['year1'];
-    
+
     const subjects = userAllGrades.naesin[yearKey][semesterKey].subjects;
     userAllGrades.naesin[yearKey][semesterKey].subjects = subjects.filter(s => s.id !== subjectId);
     renderNaesinSemester(year, semester);
@@ -198,8 +210,8 @@ export function removeNaesinSubjectRow(year: 1 | 2 | 3, semester: 1 | 2, subject
 export async function renderNaesinSemester(year: 1 | 2 | 3, semester: 1 | 2) {
     const containerKey = `y${year}s${semester}` as keyof typeof naesinGradeFormDivs;
     const container = naesinGradeFormDivs[containerKey];
-    if (!container || !naesinSubjectRowTemplate) return; 
-    container.innerHTML = ''; 
+    if (!container || !naesinSubjectRowTemplate) return;
+    container.innerHTML = '';
 
     const yearKey = `year${year}` as keyof UserAllGrades['naesin'];
     const semesterKey = `semester${semester}` as keyof UserAllGrades['naesin']['year1'];
@@ -210,33 +222,63 @@ export async function renderNaesinSemester(year: 1 | 2 | 3, semester: 1 | 2) {
         const rowDiv = clone.querySelector('.naesin-subject-row') as HTMLDivElement;
         rowDiv.dataset.subjectId = subject.id;
 
-        // 교과 드롭다운
+        const classificationSelect = rowDiv.querySelector('.naesin-subject-classification') as HTMLSelectElement;
         const curriculumSelect = rowDiv.querySelector('.naesin-subject-curriculum') as HTMLSelectElement;
-        populateSelectWithOptions(curriculumSelect, curriculumAreasFromApi, "교과 선택", 'subjectCode', 'subjectName');
-        curriculumSelect.value = subject.curriculumAreaCode || "";
-
-        // 과목 드롭다운 (교과 선택 시 동적 로드)
         const nameSelect = rowDiv.querySelector('.naesin-subject-name') as HTMLSelectElement;
-        nameSelect.innerHTML = '<option value="">과목 선택</option>'; // 초기화
 
-        if (subject.curriculumAreaCode) { // 이미 교과가 선택된 경우, 과목 목록 로드
+        // 1. 교과구분종류 드롭다운 채우기
+        populateSelectWithOptions(classificationSelect, curriculumClassificationsFromApi, "구분 선택", 'subjectCode', 'subjectName');
+        classificationSelect.value = subject.curriculumClassificationCode || "";
+
+        // 2. 교과 드롭다운 (교과구분종류 선택 시 동적 로드)
+        curriculumSelect.innerHTML = '<option value="">교과 선택</option>';
+        if (subject.curriculumClassificationCode) {
+            const curriculumsForClassification = await fetchCurriculumsForClassificationApi(subject.curriculumClassificationCode);
+            populateSelectWithOptions(curriculumSelect, curriculumsForClassification, "교과 선택", 'subjectCode', 'subjectName', false);
+            curriculumSelect.value = subject.curriculumAreaCode || "";
+        }
+
+        // 3. 과목명 드롭다운 (교과 선택 시 동적 로드)
+        nameSelect.innerHTML = '<option value="">과목 선택</option>';
+        if (subject.curriculumAreaCode) {
             const subjectsForCurriculum = await fetchSubjectsForCurriculumApi(subject.curriculumAreaCode);
             populateSelectWithOptions(nameSelect, subjectsForCurriculum, "과목 선택", 'subjectCode', 'subjectName', false);
             nameSelect.value = subject.subjectCode || "";
         }
-        
+
+        // 이벤트 핸들러
+        classificationSelect.addEventListener('change', async (e) => {
+            const selectedClassificationCode = (e.target as HTMLSelectElement).value;
+            const selectedOption = (e.target as HTMLSelectElement).selectedOptions[0];
+            subject.curriculumClassificationCode = selectedClassificationCode;
+            subject.curriculumClassificationName = selectedOption.dataset.subjectName || selectedOption.textContent || "";
+
+            // 하위 드롭다운 초기화 및 상태 업데이트
+            subject.curriculumAreaCode = null; subject.curriculumAreaName = "";
+            subject.subjectCode = null; subject.subjectName = "";
+            curriculumSelect.innerHTML = '<option value="">교과 로딩 중...</option>';
+            nameSelect.innerHTML = '<option value="">과목 선택</option>';
+
+            if (selectedClassificationCode) {
+                const curriculums = await fetchCurriculumsForClassificationApi(selectedClassificationCode);
+                populateSelectWithOptions(curriculumSelect, curriculums, "교과 선택");
+            } else {
+                curriculumSelect.innerHTML = '<option value="">교과 선택</option>';
+            }
+        });
+
         curriculumSelect.addEventListener('change', async (e) => {
             const selectedCurriculumCode = (e.target as HTMLSelectElement).value;
             const selectedOption = (e.target as HTMLSelectElement).selectedOptions[0];
             subject.curriculumAreaCode = selectedCurriculumCode;
             subject.curriculumAreaName = selectedOption.dataset.subjectName || selectedOption.textContent || "";
-            subject.subjectCode = null; // 교과 변경 시 과목 초기화
-            subject.subjectName = "";
 
+            subject.subjectCode = null; subject.subjectName = "";
             nameSelect.innerHTML = '<option value="">과목 로딩 중...</option>';
+
             if (selectedCurriculumCode) {
-                const subjectsForCurriculum = await fetchSubjectsForCurriculumApi(selectedCurriculumCode);
-                populateSelectWithOptions(nameSelect, subjectsForCurriculum, "과목 선택", 'subjectCode', 'subjectName');
+                const subjects = await fetchSubjectsForCurriculumApi(selectedCurriculumCode);
+                populateSelectWithOptions(nameSelect, subjects, "과목 선택");
             } else {
                 nameSelect.innerHTML = '<option value="">과목 선택</option>';
             }
@@ -247,6 +289,7 @@ export async function renderNaesinSemester(year: 1 | 2 | 3, semester: 1 | 2) {
             subject.subjectCode = selectedOption.value;
             subject.subjectName = selectedOption.dataset.subjectName || selectedOption.textContent || "";
         });
+
 
         // 기존 필드들
         const creditsInput = rowDiv.querySelector('.naesin-subject-credits') as HTMLInputElement;
@@ -264,7 +307,7 @@ export async function renderNaesinSemester(year: 1 | 2 | 3, semester: 1 | 2) {
         const rawScoreInput = rowDiv.querySelector('.naesin-subject-rawScore') as HTMLInputElement;
         rawScoreInput.value = subject.rawScore?.toString() || '';
         rawScoreInput.addEventListener('input', (e) => { subject.rawScore = parseFloat((e.target as HTMLInputElement).value) || null; });
-        
+
         const subjectMeanInput = rowDiv.querySelector('.naesin-subject-subjectMean') as HTMLInputElement;
         subjectMeanInput.value = subject.subjectMean?.toString() || '';
         subjectMeanInput.addEventListener('input', (e) => { subject.subjectMean = parseFloat((e.target as HTMLInputElement).value) || null; });
@@ -282,11 +325,11 @@ export async function renderNaesinSemester(year: 1 | 2 | 3, semester: 1 | 2) {
         populateSelectWithOptions(achievementLevelSelect, NAESIN_ACHIEVEMENT_LEVELS_STATIC, "성취도 선택", 'self', 'self');
         achievementLevelSelect.value = subject.achievementLevel || "";
         achievementLevelSelect.addEventListener('change', (e) => { subject.achievementLevel = (e.target as HTMLSelectElement).value || null; });
-        
+
         const distAInput = rowDiv.querySelector('.naesin-subject-distributionA') as HTMLInputElement;
         distAInput.value = subject.distributionA?.toString() || '';
         distAInput.addEventListener('input', (e) => { subject.distributionA = parseFloat((e.target as HTMLInputElement).value) || null; });
-        
+
         const distBInput = rowDiv.querySelector('.naesin-subject-distributionB') as HTMLInputElement;
         distBInput.value = subject.distributionB?.toString() || '';
         distBInput.addEventListener('input', (e) => { subject.distributionB = parseFloat((e.target as HTMLInputElement).value) || null; });
@@ -297,7 +340,7 @@ export async function renderNaesinSemester(year: 1 | 2 | 3, semester: 1 | 2) {
 
         const removeButton = rowDiv.querySelector('.remove-subject-button') as HTMLButtonElement;
         removeButton.addEventListener('click', () => removeNaesinSubjectRow(year, semester, subject.id));
-        
+
         container.appendChild(rowDiv);
     }
 }
@@ -322,7 +365,7 @@ export function renderSuneungGradesFromState() {
     if (s.subjects.history) { suneungHistoryRaw.value = s.subjects.history.rawScore?.toString() || ''; }
     if (s.subjects.explorer1) { suneungExplorer1Subject.value = s.subjects.explorer1.subjectName || ''; suneungExplorer1Raw.value = s.subjects.explorer1.rawScore?.toString() || ''; }
     if (s.subjects.explorer2) { suneungExplorer2Subject.value = s.subjects.explorer2.subjectName || ''; suneungExplorer2Raw.value = s.subjects.explorer2.rawScore?.toString() || ''; }
-    
+
     updateAllSuneungCalculatedDisplays();
 }
 
@@ -337,7 +380,7 @@ export function collectSuneungGradesFromForm() {
 
     const newSuneungGrades: UserSuneungGrades = {
         examYear: year, examMonth: month, examIdentifierForCutInfo: examId,
-        subjects: { 
+        subjects: {
             korean: {...(currentSuneungState.subjects.korean), selectedOption: suneungKoreanChoice.value, rawScore: parseFloat(suneungKoreanRaw.value) || null },
             math: {...(currentSuneungState.subjects.math), selectedOption: suneungMathChoice.value, rawScore: parseFloat(suneungMathRaw.value) || null },
             english: {...(currentSuneungState.subjects.english), rawScore: parseFloat(suneungEnglishRaw.value) || null },
@@ -346,70 +389,70 @@ export function collectSuneungGradesFromForm() {
             explorer2: {...(currentSuneungState.subjects.explorer2), subjectCode: suneungExplorer2Subject.selectedOptions[0]?.dataset.subjectCode || null, subjectName: suneungExplorer2Subject.value, rawScore: parseFloat(suneungExplorer2Raw.value) || null }
         }
     };
-    updateUserSuneungGrades(newSuneungGrades); 
-    updateAllSuneungCalculatedDisplays(); 
+    updateUserSuneungGrades(newSuneungGrades);
+    updateAllSuneungCalculatedDisplays();
 }
 
 function getScoreFromCutData(rawScore: number, cutData: ExamGradeCutMappingItem[]): Partial<UserSuneungSubjectDetailScore> {
-    let foundMatch: Partial<UserSuneungSubjectDetailScore> = { grade: 9 }; 
-    for (const item of cutData) { 
+    let foundMatch: Partial<UserSuneungSubjectDetailScore> = { grade: 9 };
+    for (const item of cutData) {
         if (item.rawScoreMin !== undefined && rawScore >= item.rawScoreMin) {
             if (item.rawScoreMax === undefined || rawScore <= item.rawScoreMax) {
                 foundMatch = { standardScore: item.standardScore, percentile: item.percentile, grade: item.grade };
-                break; 
+                break;
             }
         } else if (item.rawScoreMin === undefined && item.rawScoreMax !== undefined && rawScore <= item.rawScoreMax) {
              foundMatch = { standardScore: item.standardScore, percentile: item.percentile, grade: item.grade };
              break;
-        } else if (item.rawScoreMin === undefined && item.rawScoreMax === undefined) { 
-             foundMatch = { grade: item.grade }; 
+        } else if (item.rawScoreMin === undefined && item.rawScoreMax === undefined) {
+             foundMatch = { grade: item.grade };
         }
     }
-    if (foundMatch.standardScore === undefined) foundMatch.standardScore = rawScore; 
-    if (foundMatch.percentile === undefined && foundMatch.grade) { 
+    if (foundMatch.standardScore === undefined) foundMatch.standardScore = rawScore;
+    if (foundMatch.percentile === undefined && foundMatch.grade) {
          foundMatch.percentile = Math.max(0, Math.min(100, 100 - (foundMatch.grade * 11 - 5) + Math.floor(Math.random()*3) ));
     }
     return foundMatch;
 }
 
 export function updateSuneungCalculatedDisplay( subjectKey: keyof UserSuneungGrades['subjects'], divElement: HTMLDivElement | null ) {
-    if (!divElement) return; 
-    const suneungState = userAllGrades.suneung; 
-    const subjectData = suneungState.subjects[subjectKey] as UserSuneungSubjectDetailScore | UserSuneungSubjectExplorerScore | undefined; 
+    if (!divElement) return;
+    const suneungState = userAllGrades.suneung;
+    const subjectData = suneungState.subjects[subjectKey] as UserSuneungSubjectDetailScore | UserSuneungSubjectExplorerScore | undefined;
 
     if (!subjectData || subjectData.rawScore === null || subjectData.rawScore === undefined || !currentSuneungExamCutInfo || !currentSuneungExamCutInfo.subjects) {
         divElement.innerHTML = '원점수 입력 또는 등급컷 정보 필요'; return;
     }
 
-    let calculated: Partial<UserSuneungSubjectDetailScore> = { grade: 9, standardScore: 0, percentile: 0 }; 
-    const rawScore = subjectData.rawScore; 
-    const examCutSubjects = currentSuneungExamCutInfo.subjects; 
+    let calculated: Partial<UserSuneungSubjectDetailScore> = { grade: 9, standardScore: 0, percentile: 0 };
+    const rawScore = subjectData.rawScore;
+    const examCutSubjects = currentSuneungExamCutInfo.subjects;
 
-    let subjectNameForCuts: string | undefined; 
-    let selectedOptionForCuts: string | undefined; 
+    let subjectNameForCuts: string | undefined;
+    let selectedOptionForCuts: string | undefined;
 
     switch(subjectKey) {
         case 'korean': subjectNameForCuts = "국어"; selectedOptionForCuts = subjectData.selectedOption; break;
         case 'math': subjectNameForCuts = "수학"; selectedOptionForCuts = subjectData.selectedOption; break;
         case 'english': subjectNameForCuts = "영어"; break;
         case 'history': subjectNameForCuts = "한국사"; break;
-        case 'explorer1': case 'explorer2': 
-            subjectNameForCuts = (subjectData as UserSuneungSubjectExplorerScore).subjectName; 
+        case 'explorer1': case 'explorer2':
+            subjectNameForCuts = (subjectData as UserSuneungSubjectExplorerScore).subjectName;
             break;
     }
-    
+
     if (subjectNameForCuts && examCutSubjects[subjectNameForCuts]) {
         const cutInfoForSubject = examCutSubjects[subjectNameForCuts];
-        if (Array.isArray(cutInfoForSubject)) { 
+        if (Array.isArray(cutInfoForSubject)) {
             calculated = getScoreFromCutData(rawScore, cutInfoForSubject);
-        } else if (selectedOptionForCuts && cutInfoForSubject[selectedOptionForCuts] && Array.isArray(cutInfoForSubject[selectedOptionForCuts])) { 
+        } else if (selectedOptionForCuts && cutInfoForSubject[selectedOptionForCuts] && Array.isArray(cutInfoForSubject[selectedOptionForCuts])) {
             calculated = getScoreFromCutData(rawScore, cutInfoForSubject[selectedOptionForCuts] as ExamGradeCutMappingItem[]);
         } else if (!selectedOptionForCuts && Array.isArray(Object.values(cutInfoForSubject)[0])) {
              console.warn(`No specific option for ${subjectNameForCuts}, or cut data structure mismatch. Using generic approach or first available.`);
         }
     }
-    
-    subjectData.standardScore = calculated.standardScore ?? subjectData.standardScore; 
+
+    subjectData.standardScore = calculated.standardScore ?? subjectData.standardScore;
     subjectData.percentile = calculated.percentile ?? subjectData.percentile;
     subjectData.grade = calculated.grade ?? subjectData.grade;
 
@@ -417,7 +460,7 @@ export function updateSuneungCalculatedDisplay( subjectKey: keyof UserSuneungGra
 }
 
 export function updateAllSuneungCalculatedDisplays() {
-    if (!userAllGrades.suneung) return; 
+    if (!userAllGrades.suneung) return;
     updateSuneungCalculatedDisplay('korean', suneungKoreanCalculatedDiv);
     updateSuneungCalculatedDisplay('math', suneungMathCalculatedDiv);
     updateSuneungCalculatedDisplay('english', suneungEnglishCalculatedDiv);
@@ -474,15 +517,15 @@ export function loadSuneungGradesFromJsonFile(event: Event) {
                         explorer2: {...defaultSuneungGrades.subjects.explorer2, ...parsedSuneungGrades.subjects?.explorer2},
                     }
                 };
-                
+
                 // Update only the Suneung part of the global state
                 const newAllGrades = {...userAllGrades, suneung: mergedSuneung };
                 setUserAllGrades(newAllGrades);
-                
+
                 renderSuneungGradesFromState();
-                
+
                 if(suneungExamSelector && userAllGrades.suneung.examIdentifierForCutInfo) {
-                     suneungExamSelector.value = userAllGrades.suneung.examIdentifierForCutInfo; 
+                     suneungExamSelector.value = userAllGrades.suneung.examIdentifierForCutInfo;
                      await apiFetchSuneungExamCutInfo(suneungExamSelector.value);
                      collectSuneungGradesFromForm();
                 }
@@ -506,13 +549,13 @@ export function saveNaesinGradesToXlsFile() {
         const naesinData = userAllGrades.naesin;
         const xlsData: any[] = [];
         const header = [
-            "학년", "교과구분종류", "교과", "과목", 
+            "학년", "교과구분종류", "교과", "과목",
             "1학기 단위수", "1학기 석차등급", "1학기 원점수", "1학기 평균점수", "1학기 표준편차", "1학기 수강자수", "1학기 성취도", "1학기 성취도별분포(A)", "1학기 성취도별분포(B)", "1학기 성취도별분포(C)",
             "2학기 단위수", "2학기 석차등급", "2학기 원점수", "2학기 평균점수", "2학기 표준편차", "2학기 수강자수", "2학기 성취도", "2학기 성취도별분포(A)", "2학기 성취도별분포(B)", "2학기 성취도별분포(C)"
         ];
 
-        // Group subjects by year, curriculumAreaName, and subjectName to combine semesters
-        const groupedSubjects: Record<string, { year: number, curriculumAreaName?: string, subjectName: string, s1?: UserNaesinSubject, s2?: UserNaesinSubject }> = {};
+        // Group subjects by year, curriculumClassificationName, curriculumAreaName, and subjectName to combine semesters
+        const groupedSubjects: Record<string, { year: number, curriculumClassificationName?: string, curriculumAreaName?: string, subjectName: string, s1?: UserNaesinSubject, s2?: UserNaesinSubject }> = {};
 
         for (const year of [1, 2, 3] as const) {
             const yearKey = `year${year}` as keyof UserNaesinGrades;
@@ -521,22 +564,27 @@ export function saveNaesinGradesToXlsFile() {
 
                 const semesterKey = `semester${semester}` as keyof UserNaesinYearData;
                 naesinData[yearKey][semesterKey].subjects.forEach(subject => {
-                    const groupKey = `${year}-${subject.curriculumAreaName}-${subject.subjectName}`;
+                    const groupKey = `${year}-${subject.curriculumClassificationName}-${subject.curriculumAreaName}-${subject.subjectName}`;
                     if (!groupedSubjects[groupKey]) {
-                        groupedSubjects[groupKey] = { year, curriculumAreaName: subject.curriculumAreaName, subjectName: subject.subjectName };
+                        groupedSubjects[groupKey] = {
+                            year,
+                            curriculumClassificationName: subject.curriculumClassificationName,
+                            curriculumAreaName: subject.curriculumAreaName,
+                            subjectName: subject.subjectName
+                        };
                     }
                     if (semester === 1) groupedSubjects[groupKey].s1 = subject;
                     if (semester === 2) groupedSubjects[groupKey].s2 = subject;
                 });
             }
         }
-        
+
         Object.values(groupedSubjects).forEach(group => {
             const s1 = group.s1;
             const s2 = group.s2;
             xlsData.push({
                 "학년": group.year,
-                "교과구분종류": group.curriculumAreaName || "",
+                "교과구분종류": group.curriculumClassificationName || "",
                 "교과": group.curriculumAreaName || "",
                 "과목": group.subjectName,
                 "1학기 단위수": s1?.credits ?? "",
@@ -549,7 +597,7 @@ export function saveNaesinGradesToXlsFile() {
                 "1학기 성취도별분포(A)": s1?.distributionA ?? "",
                 "1학기 성취도별분포(B)": s1?.distributionB ?? "",
                 "1학기 성취도별분포(C)": s1?.distributionC ?? "",
-                "2학기 단위수": (group.year === 3) ? "" : (s2?.credits ?? ""), // 3학년 2학기 공백
+                "2학기 단위수": (group.year === 3) ? "" : (s2?.credits ?? ""),
                 "2학기 석차등급": (group.year === 3) ? "" : (s2?.grade ?? ""),
                 "2학기 원점수": (group.year === 3) ? "" : (s2?.rawScore ?? ""),
                 "2학기 평균점수": (group.year === 3) ? "" : (s2?.subjectMean ?? ""),
@@ -574,34 +622,33 @@ export function saveNaesinGradesToXlsFile() {
     }
 }
 
-export function loadNaesinGradesFromXlsFile(event: Event) {
+export async function loadNaesinGradesFromXlsFile(event: Event) {
     const fileInput = event.target as HTMLInputElement;
     const file = fileInput.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         try {
             const data = e.target?.result;
             const workbook = XLSX.read(data, { type: 'binary' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]; // header:1 for array of arrays
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-            if (jsonData.length < 2) { // Header + at least one data row
+            if (jsonData.length < 2) {
                 alert("XLS 파일에 유효한 데이터가 없습니다.");
                 return;
             }
-            
+
             const headers = jsonData[0].map(h => String(h).trim());
-            // Expected headers for validation (can be more robust)
-            const expectedHeaders = ["학년", "교과", "과목"]; 
+            const expectedHeaders = ["학년", "교과구분종류", "교과", "과목"];
             if (!expectedHeaders.every(eh => headers.includes(eh))) {
-                alert("XLS 파일의 헤더가 올바르지 않습니다. (학년, 교과, 과목 등 필요)");
+                alert("XLS 파일의 헤더가 올바르지 않습니다. (학년, 교과구분종류, 교과, 과목 등 필요)");
                 return;
             }
 
-            const newNaesinGrades = initializeGlobalUserAllGrades().naesin; // Start with a fresh structure
+            const newNaesinGrades = initializeGlobalUserAllGrades().naesin;
 
             for (let i = 1; i < jsonData.length; i++) {
                 const rowArray = jsonData[i];
@@ -611,31 +658,44 @@ export function loadNaesinGradesFromXlsFile(event: Event) {
                 });
 
                 const year = parseInt(row["학년"]);
-                const curriculumName = String(row["교과구분종류"] || row["교과"] || "").trim();
+                const classificationName = String(row["교과구분종류"] || "").trim();
+                const curriculumName = String(row["교과"] || "").trim();
                 const subjectName = String(row["과목"] || "").trim();
 
-                if (!year || !curriculumName || !subjectName) continue; // Skip rows with missing core info
+                if (!year || !classificationName || !curriculumName || !subjectName) continue;
 
-                const curriculumArea = curriculumAreasFromApi.find(ca => ca.subjectName === curriculumName);
-                const curriculumAreaCode = curriculumArea?.subjectCode || null;
+                const classificationInfo = curriculumClassificationsFromApi.find(c => c.subjectName === classificationName);
+                const classificationCode = classificationInfo?.subjectCode || null;
 
-                // Find subjectCode based on curriculumAreaCode and subjectName (from naesinAllRawSubjectsFromApi)
-                // This assumes naesinAllRawSubjectsFromApi has parentCode for curriculum.
-                // Or, an API call might be needed if not pre-fetched. For simplicity:
-                const subjectInfo = naesinAllRawSubjectsFromApi.find(s => s.subjectName === subjectName && (s.parentCode === curriculumAreaCode || !curriculumAreaCode));
-                const subjectCode = subjectInfo?.subjectCode || null;
+                // 교과 코드 찾기: 해당 교과구분 하위의 교과목록을 가져와서 매칭
+                let curriculumCode: string | null = null;
+                if (classificationCode) {
+                    const curriculumsForClassification = await fetchCurriculumsForClassificationApi(classificationCode);
+                    const curriculumInfo = curriculumsForClassification.find(c => c.subjectName === curriculumName);
+                    curriculumCode = curriculumInfo?.subjectCode || null;
+                }
+
+                // 과목 코드 찾기: 해당 교과 하위의 과목목록을 가져와서 매칭
+                let subjectCodeVal: string | null = null;
+                if (curriculumCode) {
+                    const subjectsForCurriculum = await fetchSubjectsForCurriculumApi(curriculumCode);
+                    const subjectInfoFromFile = subjectsForCurriculum.find(s => s.subjectName === subjectName);
+                    subjectCodeVal = subjectInfoFromFile?.subjectCode || null;
+                }
 
 
                 const processSemester = (semester: 1 | 2) => {
                     const prefix = `${semester}학기 `;
                     const credits = parseFloat(row[`${prefix}단위수`]);
-                    if (isNaN(credits) || credits <=0) return null; // If no credits, assume no subject for this semester
+                    if (isNaN(credits) || credits <=0) return null;
 
                     return {
                         id: `xls${Date.now()}${Math.random().toString(16).slice(2)}`,
-                        curriculumAreaCode: curriculumAreaCode,
+                        curriculumClassificationCode: classificationCode,
+                        curriculumClassificationName: classificationName,
+                        curriculumAreaCode: curriculumCode,
                         curriculumAreaName: curriculumName,
-                        subjectCode: subjectCode,
+                        subjectCode: subjectCodeVal,
                         subjectName: subjectName,
                         credits: credits,
                         grade: parseFloat(row[`${prefix}석차등급`]) || null,
@@ -656,12 +716,12 @@ export function loadNaesinGradesFromXlsFile(event: Event) {
                 const s1Subject = processSemester(1);
                 if (s1Subject) newNaesinGrades[yearKey].semester1.subjects.push(s1Subject);
 
-                if (year < 3) { // Only process semester 2 for year 1 and 2
+                if (year < 3) {
                     const s2Subject = processSemester(2);
                     if (s2Subject) newNaesinGrades[yearKey].semester2.subjects.push(s2Subject);
                 }
             }
-            
+
             const newAllGrades = {...userAllGrades, naesin: newNaesinGrades };
             setUserAllGrades(newAllGrades);
             renderNaesinGradesFromState();

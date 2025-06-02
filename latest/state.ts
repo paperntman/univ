@@ -12,11 +12,9 @@ import {
     FilteredUniversity,
     UniversitySidebarDetails,
     AdmissionTypeFilterKey,
-    ApiSubjectInfo, // NaesinSubjectFromAPI에서 이름 변경됨
+    ApiSubjectInfo,
     SuneungExamCutInfoFromAPI,
-    UserNaesinSubject, // 사용되지 않지만, 타입 정의 파일에는 존재
-    UserSuneungSubjectDetailScore, // 사용되지 않지만, 타입 정의 파일에는 존재
-    UserSuneungSubjectExplorerScore // 사용되지 않지만, 타입 정의 파일에는 존재
+    UserNaesinSubject
 } from './types';
 import { SUNEUNG_EXPLORER_SUBJECTS_STATIC, SUNEUNG_KOREAN_OPTIONS_STATIC, SUNEUNG_MATH_OPTIONS_STATIC } from './config';
 
@@ -35,6 +33,8 @@ export function setCurrentFilteredUniversities(universities: FilteredUniversity[
 export let selectedDepartment: string | null = null; // 사용자가 선택한 학과명
 export function setSelectedDepartment(department: string | null) { // 선택된 학과명 설정
     selectedDepartment = department;
+    // 학과 선택 시 콘솔에 로그 추가하여 확인
+    console.log("Selected Department Updated:", department);
 }
 
 export let currentScoreDifferenceTolerance: number = 10; // 현재 설정된 점수차 허용치 (기본값 10)
@@ -52,10 +52,6 @@ export function setCurrentSidebarData(data: UniversitySidebarDetails | null) { /
     currentSidebarData = data;
 }
 
-export let activeDepartmentSuggestionIndex: number = -1; // 학과 검색 자동완성 목록에서 현재 활성화된 항목 인덱스
-export function setActiveDepartmentSuggestionIndex(index: number) { // 활성화된 추천 항목 인덱스 설정
-    activeDepartmentSuggestionIndex = index;
-}
 export let lastOpenedUniversityId: string | null = null; // 마지막으로 열었던 대학의 ID (사이드바 관련)
 export function setLastOpenedUniversityId(id: string | null) { // 마지막으로 열었던 대학 ID 설정
     lastOpenedUniversityId = id;
@@ -63,6 +59,8 @@ export function setLastOpenedUniversityId(id: string | null) { // 마지막으�
 
 
 // --- 성적 관련 상태 ---
+// UserNaesinSubject에 필드가 추가되었으므로, 초기화 시 해당 필드도 null 또는 기본값으로 설정해야 합니다.
+// createInitialNaesinSubject 함수를 만들어 사용하는 것이 좋을 수 있으나, 현재는 addNaesinSubjectRow에서 처리.
 function createInitialNaesinSemester(): UserNaesinSemesterData { // 초기 내신 학기 데이터 생성
     return { subjects: [] };
 }
@@ -123,10 +121,17 @@ export function updateUserSuneungGrades(suneungGrades: UserSuneungGrades) { // �
 }
 
 // --- API로부터 가져온 데이터 상태 ---
-export let naesinSubjectsFromApi: ApiSubjectInfo[] = []; // API에서 가져온 내신 과목 목록
-export function setNaesinSubjectsFromApi(subjects: ApiSubjectInfo[]) { // 내신 과목 목록 설정
-    naesinSubjectsFromApi = subjects;
+export let curriculumClassificationsFromApi: ApiSubjectInfo[] = []; // API에서 가져온 교과구분종류 목록
+export function setCurriculumClassificationsFromApi(classifications: ApiSubjectInfo[]) { // 교과구분종류 목록 설정
+    curriculumClassificationsFromApi = classifications;
 }
+
+// 기존 naesinSubjectsFromApi는 모든 내신 '과목'의 원시 목록으로 간주하고 이름 변경
+export let naesinAllRawSubjectsFromApi: ApiSubjectInfo[] = []; // API에서 가져온 모든 내신 '과목'의 전체 목록
+export function setNaesinAllRawSubjectsFromApi(subjects: ApiSubjectInfo[]) { // '과목' 목록 설정
+    naesinAllRawSubjectsFromApi = subjects;
+}
+
 
 export let suneungKoreanOptionsFromApi: ApiSubjectInfo[] = SUNEUNG_KOREAN_OPTIONS_STATIC; // API에서 가져온 수능 국어 선택과목 목록 (정적 데이터로 초기화)
 export function setSuneungKoreanOptionsFromApi(subjects: ApiSubjectInfo[]) { // 수능 국어 선택과목 목록 설정

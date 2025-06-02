@@ -3,19 +3,19 @@
 // 과목 목록, 등급컷 정보 등을 가져오는 함수들을 포함합니다.
 
 import {
-    InitialUniversityData, DepartmentSuggestion, FilteredUniversity,
+    InitialUniversityData, FilteredUniversity,
     AdmissionTypeFilterKey, UniversitySidebarDetails, ApiSubjectInfo, SuneungExamCutInfoFromAPI,
-    UserAllGrades, UserSuneungGrades 
+    UserAllGrades, UserSuneungGrades
 } from './types';
 import { API_BASE_URL } from './config';
 import { showLoading } from './uiUtils';
-import { 
-    setCurrentSuneungExamCutInfo, 
+import {
+    setCurrentSuneungExamCutInfo,
     setNaesinAllRawSubjectsFromApi, // 이름 변경됨
-    setSuneungExplorerSubjectsFromApi, 
-    setSuneungKoreanOptionsFromApi, 
+    setSuneungExplorerSubjectsFromApi,
+    setSuneungKoreanOptionsFromApi,
     setSuneungMathOptionsFromApi,
-    setCurriculumAreasFromApi 
+    setCurriculumClassificationsFromApi
 } from './state';
 
 // Helper function to handle fetch responses
@@ -51,22 +51,8 @@ export async function fetchInitialMapData(): Promise<InitialUniversityData[]> {
     }
 }
 
-// GET /api/departments/suggest (학과 검색 자동완성)
-export async function fetchDepartmentSuggestionsApi(query: string): Promise<DepartmentSuggestion[]> {
-    // uiUtils에서 로딩 관리를 하므로 여기서는 showLoading 호출 안 함
-    try {
-        const response = await fetch(`${API_BASE_URL}/departments/suggest?query=${encodeURIComponent(query)}`);
-        const data = await handleResponse<DepartmentSuggestion[]>(response, "학과 추천 목록을 가져오는 데 실패했습니다.");
-        return data || [];
-    } catch (error) {
-        console.error("Error fetching department suggestions:", error);
-        // alert 호출은 uiUtils의 호출부에서 고려
-        return [];
-    }
-}
-
 // GET /api/subjects?type=... (과목 목록 등)
-// type: "naesin_curriculum_areas", "naesin_subjects_all", "naesin_subjects_for_curriculum?curriculumCode=CODE", "suneung_국어", "suneung_수학", "suneung_탐구"
+// type: "naesin_curriculum_classifications", "naesin_curriculums_for_classification?classificationCode=CODE", "naesin_subjects_all", "naesin_subjects_for_curriculum?curriculumCode=CODE", "suneung_국어", "suneung_수학", "suneung_탐구"
 async function fetchGenericSubjectList(type: string, params?: Record<string, string>): Promise<ApiSubjectInfo[]> {
     // showLoading은 fetchAllSubjectLists 또는 개별 호출 지점에서 관리
     try {
@@ -84,9 +70,14 @@ async function fetchGenericSubjectList(type: string, params?: Record<string, str
     }
 }
 
-// 교과 영역 목록 가져오기
-export async function fetchCurriculumAreasApi(): Promise<ApiSubjectInfo[]> {
-    return fetchGenericSubjectList("naesin_curriculum_areas");
+// 교과구분종류 목록 가져오기
+export async function fetchCurriculumClassificationsApi(): Promise<ApiSubjectInfo[]> {
+    return fetchGenericSubjectList("naesin_curriculum_classifications");
+}
+
+// 특정 교과구분종류에 해당하는 교과 목록 가져오기
+export async function fetchCurriculumsForClassificationApi(classificationCode: string): Promise<ApiSubjectInfo[]> {
+    return fetchGenericSubjectList("naesin_curriculums_for_classification", { classificationCode });
 }
 
 // 특정 교과 영역에 해당하는 과목 목록 가져오기
@@ -104,21 +95,21 @@ async function fetchAllNaesinRawSubjectsApi(): Promise<ApiSubjectInfo[]> {
 export async function fetchAllSubjectLists() {
     showLoading(true);
     try {
-        const [curriculumAreas, allNaesinRawSubjects, koreanOptions, mathOptions, explorerOptions] = await Promise.all([
-            fetchCurriculumAreasApi(),
+        const [curriculumClassifications, allNaesinRawSubjects, koreanOptions, mathOptions, explorerOptions] = await Promise.all([
+            fetchCurriculumClassificationsApi(),
             fetchAllNaesinRawSubjectsApi(), // 모든 내신 '과목'을 가져옴
             fetchGenericSubjectList("suneung_국어"),
             fetchGenericSubjectList("suneung_수학"),
             fetchGenericSubjectList("suneung_탐구")
         ]);
-        setCurriculumAreasFromApi(curriculumAreas);
-        setNaesinAllRawSubjectsFromApi(allNaesinRawSubjects); // 이름 변경된 setter 사용
+        setCurriculumClassificationsFromApi(curriculumClassifications);
+        setNaesinAllRawSubjectsFromApi(allNaesinRawSubjects);
         setSuneungKoreanOptionsFromApi(koreanOptions);
         setSuneungMathOptionsFromApi(mathOptions);
         setSuneungExplorerSubjectsFromApi(explorerOptions);
     } catch (error) {
         console.error("Error fetching all subject/curriculum lists:", error);
-        alert("전체 과목/교과 목록을 가져오는 중 오류가 발생했습니다.");
+        alert("전체 과목/교과/교과구분 목록을 가져오는 중 오류가 발생했습니다.");
     } finally {
         showLoading(false);
     }
@@ -208,7 +199,7 @@ export async function fetchUniversitySidebarDetailsApi(
         //     ...(userGradesSnapshot && { userGrades: JSON.stringify(userGradesSnapshot) })
         // });
         const url = `${API_BASE_URL}/universities/${universityId}/sidebar-details?departmentName=${encodeURIComponent(departmentName)}&admissionTypeFilter=${encodeURIComponent(admissionTypeFilter)}`;
-        
+
         const response = await fetch(url);
         return await handleResponse<UniversitySidebarDetails>(response, "대학 상세 정보를 불러오는 데 실패했습니다.");
     } catch (error) {

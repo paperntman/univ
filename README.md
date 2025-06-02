@@ -136,45 +136,45 @@
 
 -   **Endpoint:** `POST /api/universities/filter`
 -   **Purpose:** 사용자 성적 및 필터 조건에 따라 대학 정보를 필터링하여 반환합니다.
--   **Request Body:** (JSON Object)
+  -   **Request Body:** (JSON Object)
 
-    ```json
-    {
-      "userGrades": {
-        "naesin": { // ApiNaesinGrades: Record<string (e.g., "1-1", "3-1"), UserNaesinSubject[]>
-          "1-1": [ // 학년-학기
-            {
-              // "id": "string", // UI 내부용 ID, 백엔드에서 무시 가능
-              "curriculumClassificationCode": "string | null", // (신규) 교과구분종류 코드
-              "curriculumClassificationName": "string | null", // (신규) 교과구분종류명
-              "curriculumAreaCode": "string | null", // 교과 코드 (기존의 curriculumAreaCode, 예: "CURR_MATH")
-              "curriculumAreaName": "string | null", // 교과명 (기존의 curriculumAreaName, 예: "수학")
-              "subjectCode": "string | null",      // 과목 코드 (예: "MATH001")
-              "subjectName": "string",             // 과목명 (예: "수학Ⅰ")
-              "grade": "number | null",            // 등급
-              "credits": "number | null",          // 이수단위
-              "rawScore": "number | null",         // 원점수 (선택)
-              "subjectMean": "number | null",      // 과목 평균 (선택)
-              "stdDev": "number | null",           // 표준편차 (선택)
-              "studentCount": "number | null",     // 수강자수
-              "achievementLevel": "string | null", // 성취도 (예: 'A', 'P')
-              "distributionA": "number | null",    // 성취도 A 분포 (%)
-              "distributionB": "number | null",    // 성취도 B 분포 (%)
-              "distributionC": "number | null"     // 성취도 C 분포 (%)
-            }
-            // ... more subjects for "1-1"
-          ]
-          // ... "1-2", "2-1", "2-2", "3-1" (3학년 2학기는 일반적으로 제외)
+      ```json
+      {
+        "userGrades": {
+          "naesin": { // ApiNaesinGrades: Record<string (e.g., "1-1", "3-1"), UserNaesinSubject[]>
+            "1-1": [ // 학년-학기
+              {
+                // "id": "string", // UI 내부용 ID, 백엔드에서 무시 가능
+                "curriculumClassificationCode": "string | null", // (신규) 교과구분종류 코드
+                "curriculumClassificationName": "string | null", // (신규) 교과구분종류명
+                "curriculumAreaCode": "string | null", // 교과 코드 (기존의 curriculumAreaCode, 예: "CURR_MATH")
+                "curriculumAreaName": "string | null", // 교과명 (기존의 curriculumAreaName, 예: "수학")
+                "subjectCode": "string | null",      // 과목 코드 (예: "MATH001")
+                "subjectName": "string",             // 과목명 (예: "수학Ⅰ")
+                "grade": "number | null",            // 등급
+                "credits": "number | null",          // 이수단위
+                "rawScore": "number | null",         // 원점수 (선택)
+                "subjectMean": "number | null",      // 과목 평균 (선택)
+                "stdDev": "number | null",           // 표준편차 (선택)
+                "studentCount": "number | null",     // 수강자수
+                "achievementLevel": "string | null", // 성취도 (예: 'A', 'P')
+                "distributionA": "number | null",    // 성취도 A 분포 (%)
+                "distributionB": "number | null",    // 성취도 B 분포 (%)
+                "distributionC": "number | null"     // 성취도 C 분포 (%)
+              }
+              // ... more subjects for "1-1"
+            ]
+            // ... "1-2", "2-1", "2-2", "3-1" (3학년 2학기는 일반적으로 제외)
+          },
+          "suneung": { // UserSuneungGrades - 기존 명세와 동일
+            // ...
+          }
         },
-        "suneung": { // UserSuneungGrades - 기존 명세와 동일
-          // ...
+        "filterCriteria": {
+      "departmentKeywords": "B22115", // 변경된 부분: 학과 코드로 전달
+      "admissionType": "수능",
+      "scoreDifferenceTolerance": 10
         }
-      },
-      "filterCriteria": { // 기존 명세와 동일
-        "departmentKeywords": "string | null",
-        "admissionType": "string",
-        "scoreDifferenceTolerance": "number"
-      }
     }
     ```
 

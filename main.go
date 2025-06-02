@@ -28,7 +28,7 @@ func main() {
 	// 예를 들어 "/assets/index-Dr4Soqas.js"와 같은 하위 경로의 CSS/JS 파일도
 	// "./app/dist/assets/index-Dr4Soqas.js"에서 자동으로 찾아 제공하게 됩니다.
 	// 이렇게 하면 CSV, JS, CSS 파일들이 올바르게 로드됩니다.
-	http.Handle("/", http.FileServer(http.Dir("./beta_2/dist")))
+	http.Handle("/", http.FileServer(http.Dir("./beta_3/dist")))
 
 	// 서버 시작
 	port := "8080" // 포트 번호를 변수로 관리하면 더 좋습니다.

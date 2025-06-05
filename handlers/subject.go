@@ -128,12 +128,13 @@ var naesinCurriculumsData = []NaesinCurriculum{
 
 	// 과탐실
 
-	{Code: "CURR_SCIENCE_QUEST_SELECT", Name: "과학", ClassificationCode: "CLASS_SCIENCE_QUEST_SELECT"},
+	{Code: "CURR_SCIENCE_QUEST_SELECT", Name: "과학", ClassificationCode: "CLASS_SCIENCE_QUEST"},
 }
 
 // (내신) 과목 목록 (과목명만 정의, 코드는 "NAESIN_과목명"으로 생성)
 var naesinRawSubjectsData = []NaesinRawSubject{
 	// 공통 교과 과목
+	{Name: "과학탐구실험", CurriculumCode: "CURR_SCIENCE_QUEST_SELECT"},
 	{Name: "국어Ⅰ", CurriculumCode: "CURR_COMMON_KOR_SELECT"},
 	{Name: "국어Ⅱ", CurriculumCode: "CURR_COMMON_KOR_SELECT"},
 	{Name: "화법과 작문", CurriculumCode: "CURR_COMMON_KOR_SELECT"},

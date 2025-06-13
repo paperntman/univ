@@ -21,6 +21,7 @@ func main() {
 	// 이 핸들러는 정적 파일 핸들러보다 먼저 등록되어야 합니다.
 	http.HandleFunc("/map/initial-data", handlers.GetUniversitiesHandler)
 	http.HandleFunc("/api/subjects", handlers.Subject)
+	http.HandleFunc("/universities/filter", handlers.FilterUniversitiesHandler)
 
 	// 3. 정적 파일 서버 설정
 	// "./app/dist" 디렉토리의 모든 파일을 제공합니다.

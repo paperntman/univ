@@ -39,6 +39,9 @@ export interface UserNaesinSubject { // 사용자 내신 과목 정보 (UI 및 �
     distributionC?: number | null; // 성취도별 분포 C (%) (신규)
 }
 
+// API로 전송될 내신 과목 정보 (UserNaesinSubject에서 'id' 제외)
+export type ApiNaesinSubjectPayload = Omit<UserNaesinSubject, 'id'>;
+
 export interface UserNaesinSemesterData { // 사용자 내신 학기별 데이터
     subjects: UserNaesinSubject[]; // 해당 학기 과목 목록
 }
@@ -57,7 +60,7 @@ export interface UserNaesinGrades {
 
 // 내신 성적의 API 표현 (POST /universities/filter 요청 시 사용)
 // 키는 "1-1", "1-2" 등 학년-학기 형태
-export type ApiNaesinGrades = Record<string, UserNaesinSubject[]>;
+export type ApiNaesinGrades = Record<string, ApiNaesinSubjectPayload[]>;
 
 
 export interface UserSuneungSubjectDetailScore { // 사용자 수능 과목별 상세 점수

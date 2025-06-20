@@ -15,12 +15,6 @@ const dbFile = "./universities.db"
 // 전역 데이터베이스 연결 풀 (이 패키지 내에서 사용)
 var db *sql.DB
 
-// 응답 JSON의 location 부분을 위한 구조체
-type Location struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-}
-
 // 응답 JSON의 각 대학 정보를 위한 구조체
 type UniversityResponse struct {
 	UniversityID   string   `json:"universityId"`

@@ -13,7 +13,7 @@ import {
     UniversitySidebarDetails,
     AdmissionTypeFilterKey,
     ApiSubjectInfo,
-    SuneungExamCutInfoFromAPI,
+    // SuneungExamCutInfoFromAPI, // Removed
     UserNaesinSubject
 } from './types';
 import { SUNEUNG_EXPLORER_SUBJECTS_STATIC, SUNEUNG_KOREAN_OPTIONS_STATIC, SUNEUNG_MATH_OPTIONS_STATIC } from './config';
@@ -148,8 +148,8 @@ export function setSuneungExplorerSubjectsFromApi(subjects: ApiSubjectInfo[]) { 
     suneungExplorerSubjectsFromApi = subjects;
 }
 
-
-export let currentSuneungExamCutInfo: SuneungExamCutInfoFromAPI | null = null; // 현재 선택된 수능 시험의 등급컷 정보
-export function setCurrentSuneungExamCutInfo(info: SuneungExamCutInfoFromAPI | null) { // 수능 시험 등급컷 정보 설정
-    currentSuneungExamCutInfo = info;
-}
+// Removed: currentSuneungExamCutInfo and setCurrentSuneungExamCutInfo
+// export let currentSuneungExamCutInfo: SuneungExamCutInfoFromAPI | null = null;
+// export function setCurrentSuneungExamCutInfo(info: SuneungExamCutInfoFromAPI | null) {
+//     currentSuneungExamCutInfo = info;
+// }

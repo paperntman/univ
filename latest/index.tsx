@@ -6,7 +6,7 @@ declare var XLSX: any; // SheetJS
 
 
 // 타입 임포트
-import { AdmissionTypeFilterKey, UserNaesinGrades, UserSuneungGrades, ApiNaesinGrades, UserNaesinSubject } from './types';
+import { AdmissionTypeFilterKey, UserNaesinGrades, UserSuneungGrades, ApiNaesinGrades, UserNaesinSubject, UserSuneungSubjectDetailScore, UserSuneungSubjectExplorerScore } from './types';
 
 // 설정 및 상태 관리 임포트
 import { API_BASE_URL } from './config'; // API_BASE_URL은 api.ts에서 사용, 여기서는 직접 사용 안 함
@@ -21,7 +21,7 @@ import {
 } from './state';
 
 // API 유틸리티 임포트
-import { fetchAllSubjectLists, fetchFilteredUniversitiesApi, fetchSuneungExamCutInfo } from './api';
+import { fetchAllSubjectLists, fetchFilteredUniversitiesApi } from './api';
 
 // 지도 유틸리티 임포트
 import { initMap, loadInitialMarkers, updateMarkers } from './mapUtils';
@@ -95,20 +95,20 @@ const naesinGradeFormDivsEls = {
 const suneungExamSelectorEl = document.getElementById('suneung-exam-selector') as HTMLSelectElement; 
 const suneungKoreanChoiceEl = document.getElementById('suneung-korean-choice') as HTMLSelectElement; 
 const suneungKoreanRawEl = document.getElementById('suneung-korean-raw') as HTMLInputElement; 
-const suneungKoreanCalculatedDivEl = document.getElementById('suneung-korean-calculated') as HTMLDivElement; 
+// const suneungKoreanCalculatedDivEl = document.getElementById('suneung-korean-calculated') as HTMLDivElement; // Removed
 const suneungMathChoiceEl = document.getElementById('suneung-math-choice') as HTMLSelectElement; 
 const suneungMathRawEl = document.getElementById('suneung-math-raw') as HTMLInputElement; 
-const suneungMathCalculatedDivEl = document.getElementById('suneung-math-calculated') as HTMLDivElement; 
+// const suneungMathCalculatedDivEl = document.getElementById('suneung-math-calculated') as HTMLDivElement; // Removed
 const suneungEnglishRawEl = document.getElementById('suneung-english-raw') as HTMLInputElement; 
-const suneungEnglishCalculatedDivEl = document.getElementById('suneung-english-calculated') as HTMLDivElement; 
+// const suneungEnglishCalculatedDivEl = document.getElementById('suneung-english-calculated') as HTMLDivElement; // Removed
 const suneungHistoryRawEl = document.getElementById('suneung-history-raw') as HTMLInputElement; 
-const suneungHistoryCalculatedDivEl = document.getElementById('suneung-history-calculated') as HTMLDivElement; 
+// const suneungHistoryCalculatedDivEl = document.getElementById('suneung-history-calculated') as HTMLDivElement; // Removed
 const suneungExplorer1SubjectEl = document.getElementById('suneung-explorer1-subject') as HTMLSelectElement; 
 const suneungExplorer1RawEl = document.getElementById('suneung-explorer1-raw') as HTMLInputElement; 
-const suneungExplorer1CalculatedDivEl = document.getElementById('suneung-explorer1-calculated') as HTMLDivElement; 
+// const suneungExplorer1CalculatedDivEl = document.getElementById('suneung-explorer1-calculated') as HTMLDivElement; // Removed
 const suneungExplorer2SubjectEl = document.getElementById('suneung-explorer2-subject') as HTMLSelectElement; 
 const suneungExplorer2RawEl = document.getElementById('suneung-explorer2-raw') as HTMLInputElement; 
-const suneungExplorer2CalculatedDivEl = document.getElementById('suneung-explorer2-calculated') as HTMLDivElement; 
+// const suneungExplorer2CalculatedDivEl = document.getElementById('suneung-explorer2-calculated') as HTMLDivElement; // Removed
 
 
 // --- 메인 애플리케이션 로직 및 이벤트 핸들러 ---
@@ -128,12 +128,12 @@ function transformNaesinGradesForApi(internalNaesin: UserNaesinGrades): ApiNaesi
             if (subjects.length > 0) {
                 const apiSemesterKey = `${year}-${semester}`;
                 apiNaesin[apiSemesterKey] = subjects.map(s => ({
-                    id: s.id,
-                    curriculumClassificationCode: s.curriculumClassificationCode, // 교과구분종류 코드
-                    curriculumClassificationName: s.curriculumClassificationName, // 교과구분종류명
-                    curriculumAreaCode: s.curriculumAreaCode, // 교과 코드
-                    curriculumAreaName: s.curriculumAreaName, // 교과명
-                    subjectCode: s.subjectCode || "N/A", 
+                    // id: s.id, // API 전송 시 id는 필요 없음 (ApiNaesinSubjectPayload 타입에 의해 id 제외됨)
+                    curriculumClassificationCode: s.curriculumClassificationCode, 
+                    curriculumClassificationName: s.curriculumClassificationName, 
+                    curriculumAreaCode: s.curriculumAreaCode, 
+                    curriculumAreaName: s.curriculumAreaName, 
+                    subjectCode: s.subjectCode || null, 
                     subjectName: s.subjectName, 
                     grade: s.grade,
                     credits: s.credits,
@@ -152,6 +152,70 @@ function transformNaesinGradesForApi(internalNaesin: UserNaesinGrades): ApiNaesi
     return apiNaesin;
 }
 
+interface ApiSuneungSubjectPayload {
+    rawScore: number | null;
+    selectedOption?: string | null; // 국어, 수학용
+    subjectName?: string | null;    // 탐구 과목명 (API가 과목 코드가 아닌 이름으로 식별할 경우)
+    // subjectCode?: string | null; // 또는 subjectCode (API가 코드로 식별할 경우)
+}
+
+interface ApiSuneungGradesPayload {
+    examIdentifierForCutInfo: string;
+    subjects: {
+        korean?: ApiSuneungSubjectPayload;
+        math?: ApiSuneungSubjectPayload;
+        english?: ApiSuneungSubjectPayload;
+        history?: ApiSuneungSubjectPayload;
+        explorer1?: ApiSuneungSubjectPayload;
+        explorer2?: ApiSuneungSubjectPayload;
+    };
+}
+
+function transformSuneungGradesForApi(suneungGrades: UserSuneungGrades): ApiSuneungGradesPayload {
+    const payloadSubjects: Partial<ApiSuneungGradesPayload['subjects']> = {};
+
+    const processSubject = (
+        subjectData: UserSuneungSubjectDetailScore | UserSuneungSubjectExplorerScore | undefined,
+        isExplorer: boolean = false
+    ): ApiSuneungSubjectPayload | undefined => {
+        if (!subjectData || subjectData.rawScore === null || subjectData.rawScore === undefined) {
+            return undefined; 
+        }
+        
+        const basePayload: ApiSuneungSubjectPayload = { rawScore: subjectData.rawScore };
+        
+        if (subjectData.selectedOption) { 
+            basePayload.selectedOption = subjectData.selectedOption;
+        }
+        
+        if (isExplorer) { 
+            const explorerData = subjectData as UserSuneungSubjectExplorerScore;
+            basePayload.subjectName = explorerData.subjectName; 
+        }
+        return basePayload;
+    };
+
+    payloadSubjects.korean = processSubject(suneungGrades.subjects.korean);
+    payloadSubjects.math = processSubject(suneungGrades.subjects.math);
+    payloadSubjects.english = processSubject(suneungGrades.subjects.english);
+    payloadSubjects.history = processSubject(suneungGrades.subjects.history);
+    payloadSubjects.explorer1 = processSubject(suneungGrades.subjects.explorer1, true);
+    payloadSubjects.explorer2 = processSubject(suneungGrades.subjects.explorer2, true);
+    
+    const finalPayloadSubjects: any = {};
+    for (const key in payloadSubjects) {
+        if (payloadSubjects[key as keyof typeof payloadSubjects] !== undefined) {
+            finalPayloadSubjects[key] = payloadSubjects[key as keyof typeof payloadSubjects];
+        }
+    }
+
+    return {
+        examIdentifierForCutInfo: suneungGrades.examIdentifierForCutInfo,
+        subjects: finalPayloadSubjects as ApiSuneungGradesPayload['subjects']
+    };
+}
+
+
 async function handleFilterUpdate() {
     if (!selectedDepartment) {
         alert("학과를 먼저 선택해주세요.");
@@ -159,16 +223,28 @@ async function handleFilterUpdate() {
         updateMarkers();
         return;
     }
-    collectSuneungGradesFromForm(); 
+
+    let naesinPayloadForApi: ApiNaesinGrades = {};
+    // examIdentifierForCutInfo는 suneungExamSelectorEl의 change 이벤트에서 collectSuneungGradesFromForm()를 통해
+    // userAllGrades.suneung에 이미 업데이트 되어 있다고 가정합니다.
+    let suneungPayloadForApi: ApiSuneungGradesPayload = {
+        examIdentifierForCutInfo: userAllGrades.suneung.examIdentifierForCutInfo,
+        subjects: {}
+    };
+
+    if (currentAdmissionTypeFilter !== '경쟁률') {
+        collectSuneungGradesFromForm(); // "경쟁률"이 아닐 때만 현재 폼의 수능 점수 수집
+        naesinPayloadForApi = transformNaesinGradesForApi(userAllGrades.naesin); // 내신 성적은 항상 현재 상태 반영
+        suneungPayloadForApi = transformSuneungGradesForApi(userAllGrades.suneung);
+    }
+    // "경쟁률"일 경우, naesinPayloadForApi는 {} 이고,
+    // suneungPayloadForApi는 examIdentifierForCutInfo는 유지하되 subjects는 {} 인 상태로 전송됩니다.
 
     try {
-        const apiNaesinPayload = transformNaesinGradesForApi(userAllGrades.naesin);
-        const apiSuneungPayload = userAllGrades.suneung;
-
         const requestPayload = {
             userGrades: {
-                naesin: apiNaesinPayload,
-                suneung: apiSuneungPayload
+                naesin: naesinPayloadForApi,
+                suneung: suneungPayloadForApi
             },
             filterCriteria: {
                 departmentKeywords: selectedDepartment,
@@ -221,12 +297,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         naesinSubjectRowTemplate: naesinSubjectRowTemplateEl,
         naesinGradeFormDivs: naesinGradeFormDivsEls,
         suneungExamSelector: suneungExamSelectorEl,
-        suneungKoreanChoice: suneungKoreanChoiceEl, suneungKoreanRaw: suneungKoreanRawEl, suneungKoreanCalculatedDiv: suneungKoreanCalculatedDivEl,
-        suneungMathChoice: suneungMathChoiceEl, suneungMathRaw: suneungMathRawEl, suneungMathCalculatedDiv: suneungMathCalculatedDivEl,
-        suneungEnglishRaw: suneungEnglishRawEl, suneungEnglishCalculatedDiv: suneungEnglishCalculatedDivEl,
-        suneungHistoryRaw: suneungHistoryRawEl, suneungHistoryCalculatedDiv: suneungHistoryCalculatedDivEl,
-        suneungExplorer1Subject: suneungExplorer1SubjectEl, suneungExplorer1Raw: suneungExplorer1RawEl, suneungExplorer1CalculatedDiv: suneungExplorer1CalculatedDivEl,
-        suneungExplorer2Subject: suneungExplorer2SubjectEl, suneungExplorer2Raw: suneungExplorer2RawEl, suneungExplorer2CalculatedDiv: suneungExplorer2CalculatedDivEl,
+        suneungKoreanChoice: suneungKoreanChoiceEl, suneungKoreanRaw: suneungKoreanRawEl, 
+        suneungMathChoice: suneungMathChoiceEl, suneungMathRaw: suneungMathRawEl, 
+        suneungEnglishRaw: suneungEnglishRawEl, 
+        suneungHistoryRaw: suneungHistoryRawEl, 
+        suneungExplorer1Subject: suneungExplorer1SubjectEl, suneungExplorer1Raw: suneungExplorer1RawEl, 
+        suneungExplorer2Subject: suneungExplorer2SubjectEl, suneungExplorer2Raw: suneungExplorer2RawEl, 
     });
     
     if (mapDivEl) initMap(mapDivEl); 
@@ -234,10 +310,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadInitialMarkers(); 
     await fetchAllSubjectLists(); 
-    
-    if (suneungExamSelectorEl && suneungExamSelectorEl.value) {
-        await fetchSuneungExamCutInfo(suneungExamSelectorEl.value);
-    }
     
     populateSuneungSubjectDropdowns(); 
 
@@ -276,8 +348,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     closeGradeModalButtonEl.addEventListener('click', closeGradeModal); 
     submitGradesButtonEl.addEventListener('click', () => { 
-        collectSuneungGradesFromForm(); 
-        // Naesin grades are updated in real-time
+        // 수능 점수는 실시간으로 collectSuneungGradesFromForm()을 통해 userAllGrades.suneung에 반영됨.
+        // 내신 성적도 각 입력 필드의 이벤트 리스너를 통해 userAllGrades.naesin에 실시간 반영됨.
+        // 따라서 이 버튼 클릭 시에는 추가적인 수집 없이 모달만 닫습니다.
+        // handleFilterUpdate 호출 시점에 필요한 전형에 따라 수능 점수를 다시 한 번 수집.
         closeGradeModal();
         alert("성적이 반영되었습니다. '필터 적용 및 지도 업데이트' 버튼을 클릭하여 결과를 확인하세요.");
     });
@@ -307,20 +381,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     suneungExamSelectorEl.addEventListener('change', async () => {
         if (suneungExamSelectorEl) {
-            await fetchSuneungExamCutInfo(suneungExamSelectorEl.value); 
-            collectSuneungGradesFromForm(); 
+            collectSuneungGradesFromForm(); // Update state with new exam identifier
+                                            // This ensures userAllGrades.suneung.examIdentifierForCutInfo is up-to-date
         }
     });
 
+    // Event listeners for Suneung inputs to update state on change
     [suneungKoreanRawEl, suneungMathRawEl, suneungEnglishRawEl, suneungHistoryRawEl, suneungExplorer1RawEl, suneungExplorer2RawEl,
      suneungKoreanChoiceEl, suneungMathChoiceEl, suneungExplorer1SubjectEl, suneungExplorer2SubjectEl].forEach(el => {
         if (el) {
-            el.addEventListener('change', () => { 
-                collectSuneungGradesFromForm();
+            const eventType = (el.tagName === 'SELECT' || el.type === 'text' || el.type === 'number') ? 'change' : 'input';
+            el.addEventListener(eventType, () => { 
+                collectSuneungGradesFromForm(); // 실시간으로 userAllGrades.suneung 업데이트
             });
-             el.addEventListener('input', () => { 
-                if (el.type === 'number') collectSuneungGradesFromForm();
-            });
+            if (el.type === 'number') {
+                 el.addEventListener('input', () => {
+                    collectSuneungGradesFromForm(); // 숫자 입력 시에도 실시간 업데이트
+                });
+            }
         }
     });
 

@@ -1,3 +1,5 @@
+
+
 // 이 파일은 Leaflet 지도의 초기화, 마커 생성 및 업데이트, 마커 스타일링 등
 // 지도와 관련된 유틸리티 함수들을 담당합니다.
 
@@ -108,71 +110,87 @@ export function getMarkerColorAndTooltipInfo(
     let tooltipText = `${universityData.universityName}<br>${universityData.departmentName}`; // 기본 툴팁 텍스트
     
     // 1. '경쟁률' 필터일 경우
-    if (admissionType === '경쟁률' && universityData.overallCompetitionRate !== undefined) {
-        const rate = universityData.overallCompetitionRate;
-        const minRate = 1; const maxRate = 30; // 경쟁률 범위 (색상 계산용)
-        // 경쟁률에 따라 흰색(낮음) ~ 보라색(높음)으로 색상 보간
-        const whiteColor = { r: 255, g: 255, b: 255 }; 
-        const purpleColor = { r: 102, g: 51, b: 153 }; // (예시: 어두운 보라색)
+    if (admissionType === '경쟁률') {
+        if (universityData.overallCompetitionRate !== undefined) {
+            const rate = universityData.overallCompetitionRate;
+            const minRate = 1; const maxRate = 30; // 경쟁률 범위 (색상 계산용)
+            // 경쟁률에 따라 흰색(낮음) ~ 보라색(높음)으로 색상 보간
+            const whiteColor = { r: 255, g: 255, b: 255 }; 
+            const purpleColor = { r: 102, g: 51, b: 153 }; // (예시: 어두운 보라색)
 
-        const ratio = Math.min(1, Math.max(0, (rate - minRate) / (maxRate - minRate))); // 0~1 사이의 비율로 정규화
-        r = Math.round(whiteColor.r * (1 - ratio) + purpleColor.r * ratio);
-        g = Math.round(whiteColor.g * (1 - ratio) + purpleColor.g * ratio);
-        b = Math.round(whiteColor.b * (1 - ratio) + purpleColor.b * ratio);
-        color = `rgb(${r}, ${g}, ${b})`;
-        tooltipText += `<br>전체 경쟁률: ${rate.toFixed(1)} : 1`;
-
+            const ratio = Math.min(1, Math.max(0, (rate - minRate) / (maxRate - minRate))); // 0~1 사이의 비율로 정규화
+            r = Math.round(whiteColor.r * (1 - ratio) + purpleColor.r * ratio);
+            g = Math.round(whiteColor.g * (1 - ratio) + purpleColor.g * ratio);
+            b = Math.round(whiteColor.b * (1 - ratio) + purpleColor.b * ratio);
+            color = `rgb(${r}, ${g}, ${b})`;
+            tooltipText += `<br>전체 경쟁률: ${rate.toFixed(1)} : 1`;
+        } else {
+            tooltipText += `<br>전체 경쟁률: 정보 없음`;
+        }
     // 2. '경쟁률' 이외의 전형 필터일 경우 (수능, 교과, 종합)
-    } else if (admissionType !== '경쟁률') {
+    } else { // Simplified from 'else if (admissionType !== '경쟁률')'
         const typeKey = typeKeyForMarkerLookup[admissionType]; // 현재 필터에 맞는 영문 키 가져오기
         const resultForType = typeKey ? universityData.admissionTypeResults[typeKey] : undefined; // 해당 전형의 결과 데이터
 
-        // 해당 전형의 사용자 계산 점수와 작년 평균 점수가 모두 있을 경우 색상 계산
-        if (resultForType && resultForType.userCalculatedScore !== undefined && resultForType.lastYearAvgConvertedScore !== undefined) {
+        if (resultForType) {
             const userScore = resultForType.userCalculatedScore;
             const avgScore = resultForType.lastYearAvgConvertedScore;
-            const deviation = userScore - avgScore; // 나의 점수 - 작년 평균 점수
-
-            // 점수 차이에 따른 색상 기준 (예시)
-            const SIGNIFICANT_DIFF_POSITIVE = 20; // 매우 긍정적 차이 (초록색)
-            const SIGNIFICANT_DIFF_NEGATIVE = -20; // 매우 부정적 차이 (빨간색)
-
-            // 목표 색상들
-            const greenTarget = { r: 76, g: 175, b: 80 }; // 초록색 (매우 유리)
-            const blueTarget = { r: 3, g: 169, b: 244 };   // 파란색 (유리)
-            const yellowTarget = { r: 255, g: 193, b: 7 }; // 노란색 (약간 불리)
-            const redTarget = { r: 211, g: 47, b: 47 };    // 빨간색 (매우 불리)
-
-            // 점수 차이에 따라 색상 결정
-            if (deviation >= SIGNIFICANT_DIFF_POSITIVE) { ({ r, g, b } = greenTarget); } // 매우 유리
-            else if (deviation > 0) { // 유리 (파란색 ~ 초록색 사이)
-                const ratio = deviation / SIGNIFICANT_DIFF_POSITIVE;
-                r = Math.round(blueTarget.r * (1 - ratio) + greenTarget.r * ratio);
-                g = Math.round(blueTarget.g * (1 - ratio) + greenTarget.g * ratio);
-                b = Math.round(blueTarget.b * (1 - ratio) + greenTarget.b * ratio);
-            } else if (deviation > SIGNIFICANT_DIFF_NEGATIVE) { // 약간 불리 (노란색 ~ 파란색 사이)
-                 const ratio = (deviation - SIGNIFICANT_DIFF_NEGATIVE) / Math.abs(SIGNIFICANT_DIFF_NEGATIVE);
-                r = Math.round(yellowTarget.r * (1 - ratio) + blueTarget.r * ratio);
-                g = Math.round(yellowTarget.g * (1 - ratio) + blueTarget.g * ratio);
-                b = Math.round(yellowTarget.b * (1 - ratio) + blueTarget.b * ratio);
-            } else { ({ r, g, b } = redTarget); } // 매우 불리
+            const cut70Score = resultForType.lastYear70CutConvertedScore;
             
-            color = `rgb(${r}, ${g}, ${b})`;
-            tooltipText += `<br>${admissionType} 전형: 나의 ${userScore.toFixed(1)} / 작년 ${avgScore.toFixed(1)} (차: ${deviation.toFixed(1)})`;
+            // 70%컷을 우선 사용, 없으면 평균 점수 사용
+            const lastYearScore = cut70Score !== undefined ? cut70Score : avgScore;
+
+            // Case 1: 나의 점수와 작년 점수(70%컷 우선 또는 평균)가 모두 있을 때
+            if (userScore !== undefined && lastYearScore !== undefined) {
+                const deviation = userScore - lastYearScore;
+                
+                const SIGNIFICANT_DIFF_POSITIVE = 0.5;
+                const SIGNIFICANT_DIFF_NEGATIVE = -0.5;
+                const greenTarget = { r: 76, g: 175, b: 80 }; // 초록
+                const redTarget = { r: 211, g: 47, b: 47 };   // 빨강
+
+                if (deviation >= SIGNIFICANT_DIFF_POSITIVE) {
+                    ({ r, g, b } = greenTarget);
+                } else if (deviation <= SIGNIFICANT_DIFF_NEGATIVE) {
+                    ({ r, g, b } = redTarget);
+                } else { // -0.5 < deviation < 0.5 사이를 보간
+                    // deviation을 [SIGNIFICANT_DIFF_NEGATIVE, SIGNIFICANT_DIFF_POSITIVE] 범위에서 [0, 1] 비율로 변환
+                    const range = SIGNIFICANT_DIFF_POSITIVE - SIGNIFICANT_DIFF_NEGATIVE;
+                    const ratio = (deviation - SIGNIFICANT_DIFF_NEGATIVE) / range;
+                    r = Math.round(redTarget.r * (1 - ratio) + greenTarget.r * ratio);
+                    g = Math.round(redTarget.g * (1 - ratio) + greenTarget.g * ratio);
+                    b = Math.round(redTarget.b * (1 - ratio) + greenTarget.b * ratio);
+                }
+                color = `rgb(${r}, ${g}, ${b})`;
+                tooltipText += `<br>${admissionType} 전형: 나의 ${userScore.toFixed(2)} / 작년 ${lastYearScore.toFixed(2)} (차: ${deviation.toFixed(2)})`;
+
+            // Case 2: 나의 점수는 없지만 작년 점수(70%컷 우선 또는 평균)만 있을 때
+            } else if (lastYearScore !== undefined) {
+                color = 'rgb(3, 169, 244)'; // 파란색 (정보 있음을 알림)
+                tooltipText += `<br>${admissionType} 작년 컷: ${lastYearScore.toFixed(2)}`;
+
+            // Case 3: 나의 점수만 있고 작년 점수는 없을 때
+            } else if (userScore !== undefined) {
+                color = 'rgb(150, 150, 150)'; // 중립적인 회색
+                tooltipText += `<br>${admissionType} 나의 점수: ${userScore.toFixed(2)}`;
             
-            // 수능 최저학력기준 충족 여부 (수시 전형에서 주로 의미 있음)
+            // Case 4: 나의 점수와 작년 점수 모두 없을 때 (정성평가 결과가 있을 수 있음)
+            } else {
+                if (resultForType.qualitativeEvaluation) {
+                    color = 'rgb(150, 150, 150)'; // 중립적인 회색 (정성평가 결과 표시)
+                    tooltipText += `<br>${admissionType} 전형: ${resultForType.qualitativeEvaluation}`;
+                } else {
+                    tooltipText += `<br>${admissionType} 전형: 정보 없음`;
+                    // color는 INITIAL_MARKER_COLOR 유지
+                }
+            }
+
+            // 수능 최저학력기준 충족 여부 (해당 전형 결과가 있고, 수능 전형이 아닐 때)
             if (resultForType.suneungMinSatisfied !== undefined && admissionType !== '수능') {
                  tooltipText += `<br>수능최저: ${resultForType.suneungMinSatisfied ? "충족" : "미충족"}`;
             }
-        // '종합' 전형이고 점수 정보는 없지만 정성평가 결과가 있을 경우
-        } else if (admissionType === '종합' && resultForType?.qualitativeEvaluation) {
-            color = `rgb(150, 150, 150)`; // 정성평가는 중립적인 회색 계열로 표시 (예시)
-            tooltipText += `<br>${admissionType} 전형: ${resultForType.qualitativeEvaluation}`;
-             if (resultForType.suneungMinSatisfied !== undefined) {
-                 tooltipText += `<br>수능최저: ${resultForType.suneungMinSatisfied ? "충족" : "미충족"}`;
-            }
-        } else { // 해당 전형 정보가 없을 경우
-             tooltipText += `<br>${admissionType} 전형: 정보 없음`;
+        } else { // resultForType이 없을 경우
+            tooltipText += `<br>${admissionType} 전형: 정보 없음`;
         }
     }
     return { color, tooltipText };

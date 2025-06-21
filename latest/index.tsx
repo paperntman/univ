@@ -218,28 +218,28 @@ function transformSuneungGradesForApi(suneungGrades: UserSuneungGrades): ApiSune
 
 async function handleFilterUpdate() {
     if (!selectedDepartment) {
-        alert("학과를 먼저 선택해주세요.");
+        alert('학과를 먼저 선택해주세요.');
         setCurrentFilteredUniversities([]);
         updateMarkers();
         return;
     }
-
     let naesinPayloadForApi: ApiNaesinGrades = {};
-    // examIdentifierForCutInfo는 suneungExamSelectorEl의 change 이벤트에서 collectSuneungGradesFromForm()를 통해
-    // userAllGrades.suneung에 이미 업데이트 되어 있다고 가정합니다.
-    let suneungPayloadForApi: ApiSuneungGradesPayload = {
-        examIdentifierForCutInfo: userAllGrades.suneung.examIdentifierForCutInfo,
-        subjects: {}
-    };
-
+    let suneungPayloadForApi: ApiSuneungGradesPayload = { examIdentifierForCutInfo: '', subjects: {} };
     if (currentAdmissionTypeFilter !== '경쟁률') {
-        collectSuneungGradesFromForm(); // "경쟁률"이 아닐 때만 현재 폼의 수능 점수 수집
-        naesinPayloadForApi = transformNaesinGradesForApi(userAllGrades.naesin); // 내신 성적은 항상 현재 상태 반영
-        suneungPayloadForApi = transformSuneungGradesForApi(userAllGrades.suneung);
+        collectSuneungGradesFromForm();
+        naesinPayloadForApi = transformNaesinGradesForApi(userAllGrades.naesin);
+        const suneungHasInput = Object.values(userAllGrades.suneung.subjects || {}).some(v => v !== undefined && v !== null && v !== '');
+        if (currentAdmissionTypeFilter === '수능' && !suneungHasInput) {
+            setCurrentFilteredUniversities([]);
+            updateMarkers();
+            return;
+        }
+        if (suneungHasInput) {
+            suneungPayloadForApi = transformSuneungGradesForApi(userAllGrades.suneung);
+        } else {
+            suneungPayloadForApi = { examIdentifierForCutInfo: '', subjects: {} };
+        }
     }
-    // "경쟁률"일 경우, naesinPayloadForApi는 {} 이고,
-    // suneungPayloadForApi는 examIdentifierForCutInfo는 유지하되 subjects는 {} 인 상태로 전송됩니다.
-
     try {
         const requestPayload = {
             userGrades: {
@@ -252,31 +252,26 @@ async function handleFilterUpdate() {
                 scoreDifferenceTolerance: currentScoreDifferenceTolerance
             }
         };
-        
-        console.log("Sending to /universities/filter:", JSON.stringify(requestPayload, null, 2));
-
+        console.log('Sending to /universities/filter:', JSON.stringify(requestPayload, null, 2));
         const responseData = await fetchFilteredUniversitiesApi(requestPayload);
-        
         if(responseData && Array.isArray(responseData)) {
             setCurrentFilteredUniversities(responseData);
         } else {
-            console.error("Invalid data from fetchFilteredUniversitiesApi or API call failed.");
-            setCurrentFilteredUniversities([]); 
+            setCurrentFilteredUniversities([]);
         }
-       
-        updateMarkers(); 
+        updateMarkers();
         if (lastOpenedUniversityId && !currentFilteredUniversities.find(u => u.universityId === lastOpenedUniversityId)) {
             closeSidebar();
         }
-
-    } catch (error) { 
-        console.error("Error in handleFilterUpdate after API call:", error);
+    } catch (error) {
         setCurrentFilteredUniversities([]);
         updateMarkers();
-    } finally {
-        // showLoading(false); 
     }
 }
+
+// 내신 성적 편차 범위 텍스트 동기화
+const scoreDiffLabel = document.querySelector('label[for="score-difference-tolerance"]');
+if (scoreDiffLabel) scoreDiffLabel.textContent = '내신 성적 편차 범위 (0.0~8.0):';
 
 document.addEventListener('DOMContentLoaded', async () => {
     initializeUiUtilsDOM({
@@ -313,37 +308,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     populateSuneungSubjectDropdowns(); 
 
+    // 슬라이더/입력값 동기화 범위 0.0~8.0, step 0.1로 변경. 전형 필터 변경 시 마커 자동 갱신 제거
+    // 슬라이더/입력 엘리먼트 초기화
     scoreDifferenceToleranceInputEl.value = currentScoreDifferenceTolerance.toString();
     scoreDifferenceToleranceSliderEl.value = currentScoreDifferenceTolerance.toString();
     admissionTypeFilterSelectEl.value = currentAdmissionTypeFilter;
 
-    enterGradesButtonEl.addEventListener('click', openGradeModal);
-    admissionTypeFilterSelectEl.addEventListener('change', (e) => {
-        setCurrentAdmissionTypeFilter((e.target as HTMLSelectElement).value as AdmissionTypeFilterKey);
-        if (sidebarDivEl.classList.contains('visible') && currentSidebarData && lastOpenedUniversityId) {
-            openSidebar(lastOpenedUniversityId, currentSidebarData.departmentName); 
-        } else if (currentSidebarData) { 
-            renderSidebarContentUtil();
-        }
-        if (currentFilteredUniversities.length > 0) {
-            updateMarkers();
-        }
-    });
+    // 슬라이더/입력 동기화 (0.0~8.0, step 0.1)
+    scoreDifferenceToleranceInputEl.setAttribute('min', '0.0');
+    scoreDifferenceToleranceInputEl.setAttribute('max', '8.0');
+    scoreDifferenceToleranceInputEl.setAttribute('step', '0.1');
+    scoreDifferenceToleranceSliderEl.setAttribute('min', '0.0');
+    scoreDifferenceToleranceSliderEl.setAttribute('max', '8.0');
+    scoreDifferenceToleranceSliderEl.setAttribute('step', '0.1');
+
     scoreDifferenceToleranceInputEl.addEventListener('change', (e) => {
         const value = parseFloat((e.target as HTMLInputElement).value);
-        if (!isNaN(value) && value >= 0 && value <= 100) {
+        if (!isNaN(value) && value >= 0 && value <= 8) {
             setCurrentScoreDifferenceTolerance(value);
             scoreDifferenceToleranceSliderEl.value = value.toString();
         } else {
-            (e.target as HTMLInputElement).value = currentScoreDifferenceTolerance.toString(); 
-            alert("유효한 점수차 허용치를 입력해주세요 (0 ~ 100).");
+            (e.target as HTMLInputElement).value = currentScoreDifferenceTolerance.toString();
+            alert('유효한 내신 성적 범위를 입력해주세요 (0.0 ~ 8.0).');
         }
     });
-    scoreDifferenceToleranceSliderEl.addEventListener('input', (e) => { 
+    scoreDifferenceToleranceSliderEl.addEventListener('input', (e) => {
         const value = parseFloat((e.target as HTMLInputElement).value);
         setCurrentScoreDifferenceTolerance(value);
-        scoreDifferenceToleranceInputEl.value = value.toFixed(0); 
+        scoreDifferenceToleranceInputEl.value = value.toString();
     });
+
+    admissionTypeFilterSelectEl.addEventListener('change', (e) => {
+        setCurrentAdmissionTypeFilter((e.target as HTMLSelectElement).value as AdmissionTypeFilterKey);
+        if (sidebarDivEl.classList.contains('visible') && currentSidebarData && lastOpenedUniversityId) {
+            openSidebar(lastOpenedUniversityId, currentSidebarData.departmentName);
+        } else if (currentSidebarData) {
+            renderSidebarContentUtil();
+        }
+        // updateMarkers(); // 자동 갱신 제거
+    });
+
+    // 필터 적용 및 지도 업데이트 버튼에만 handleFilterUpdate 연결
     applyFiltersButtonEl.addEventListener('click', handleFilterUpdate); 
 
     closeGradeModalButtonEl.addEventListener('click', closeGradeModal); 
@@ -401,6 +406,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
+
+    enterGradesButtonEl.addEventListener('click', openGradeModal);
 
     console.log("Application initialized with real fetch API calls.");
 });

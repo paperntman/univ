@@ -37,7 +37,7 @@ export function setSelectedDepartment(department: string | null) { // 선택된 
     console.log("Selected Department Updated:", department);
 }
 
-export let currentScoreDifferenceTolerance: number = 10; // 현재 설정된 점수차 허용치 (기본값 10)
+export let currentScoreDifferenceTolerance: number = 8; // 현재 설정된 점수차 허용치 (기본값 8)
 export function setCurrentScoreDifferenceTolerance(tolerance: number) { // 점수차 허용치 설정
     currentScoreDifferenceTolerance = tolerance;
 }

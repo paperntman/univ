@@ -115,10 +115,12 @@ export interface FilteredUniversityAdmissionResults {
     jonghap?: AdmissionTypeSpecificResults; // 학생부종합 전형 결과
 }
 
-export interface FilteredUniversity extends UniversityBase { // 필터링된 대학 정보
+export interface FilteredUniversity extends UniversityBase {
+    detailAdmissionType: AdmissionTypeSpecificResults | undefined; // 필터링된 대학 정보
     departmentName: string; // 학과명
     admissionTypeResults: FilteredUniversityAdmissionResults; // 전형 유형별 결과
     overallCompetitionRate?: number; // 전체 경쟁률 (새 필드)
+    admissionType?: string; // 세부 전형명 (예: '학생부교과(일반학생 전형)')
 }
 
 // GET /api/subjects 응답 타입 (내신/수능 과목 목록)

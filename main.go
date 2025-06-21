@@ -72,7 +72,7 @@ func main() {
 
 	// --- 4. 서버 실행 ---
 
-	port := "8080"
+	port := "80"
 	log.Printf("서버가 %s 포트에서 시작됩니다.", port)
 	log.Printf("메인 페이지: http://localhost:%s/", port)
 

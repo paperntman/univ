@@ -70,7 +70,7 @@ var naesinCurriculumsData = []NaesinCurriculum{
 	{Code: "CURR_COMMON_CULTURE_SELECT", Name: "교양", ClassificationCode: "CLASS_COMMON_SELECT"},
 	{Code: "CURR_COMMON_INTERNATIONAL_SELECT", Name: "국제 계열", ClassificationCode: "CLASS_COMMON_SELECT"},
 	{Code: "CURR_COMMON_MECHANIC_SELECT", Name: "기계", ClassificationCode: "CLASS_COMMON_SELECT"},
-	{Code: "CURR_COMMON_ECONOMY_SELECT", Name: "경영·금융", ClassificationCode: "CLASS_COMMON_SELECT"},
+	{Code: "CURR_COMMON_MECHANIC_HOUSE_SELECT", Name: "기술·가정", ClassificationCode: "CLASS_COMMON_SELECT"},
 	{Code: "CURR_COMMON_AGRICULTURE_FISHERIES_OCEAN_SELECT", Name: "농림·수산해양", ClassificationCode: "CLASS_COMMON_SELECT"},
 	{Code: "CURR_COMMON_HEALTH_WELFARE_SELECT", Name: "보건·복지", ClassificationCode: "CLASS_COMMON_SELECT"},
 	{Code: "CURR_COMMON_SHIP_OPERATION_SELECT", Name: "선박 운항", ClassificationCode: "CLASS_COMMON_SELECT"},
@@ -109,6 +109,7 @@ var naesinCurriculumsData = []NaesinCurriculum{
 	{Code: "CURR_COMMON_CULTURE_SELECT", Name: "교양", ClassificationCode: "CLASS_CAREER_SELECT"},
 	{Code: "CURR_COMMON_INTERNATIONAL_SELECT", Name: "국제 계열", ClassificationCode: "CLASS_CAREER_SELECT"},
 	{Code: "CURR_COMMON_MECHANIC_SELECT", Name: "기계", ClassificationCode: "CLASS_CAREER_SELECT"},
+	{Code: "CURR_COMMON_MECHANIC_HOUSE_SELECT", Name: "기술·가정", ClassificationCode: "CLASS_COMMON_SELECT"},
 	{Code: "CURR_COMMON_AGRICULTURE_FISHERIES_OCEAN_SELECT", Name: "농림·수산해양", ClassificationCode: "CLASS_CAREER_SELECT"},
 	{Code: "CURR_COMMON_HEALTH_WELFARE_SELECT", Name: "보건·복지", ClassificationCode: "CLASS_CAREER_SELECT"},
 	{Code: "CURR_COMMON_SHIP_OPERATION_SELECT", Name: "선박 운항", ClassificationCode: "CLASS_CAREER_SELECT"},
@@ -133,6 +134,15 @@ var naesinCurriculumsData = []NaesinCurriculum{
 
 // (내신) 과목 목록 (과목명만 정의, 코드는 "NAESIN_과목명"으로 생성)
 var naesinRawSubjectsData = []NaesinRawSubject{
+	{Name: "가정과학", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
+	{Name: "공학 일반", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
+	{Name: "기술·가정", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
+	{Name: "농업 생명 과학", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
+	{Name: "정보", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
+	{Name: "지식 재산 일반", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
+	{Name: "창의 경영", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
+	{Name: "해양 문화와 기술", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
+	{Name: "인공지능 기초", CurriculumCode: "CURR_COMMON_MECHANIC_HOUSE_SELECT"},
 	// 공통 교과 과목
 	{Name: "과학탐구실험", CurriculumCode: "CURR_SCIENCE_QUEST_SELECT"},
 	{Name: "국어Ⅰ", CurriculumCode: "CURR_COMMON_KOR_SELECT"},

@@ -153,11 +153,22 @@ export function getMarkerColorAndTooltipInfo(
                 lastYearScores.push(result.lastYearAvgConvertedScore);
             }
         });
+        if (diffs.length === 0) {
+        // 비교할 성적 데이터가 없으면 초기 회색 마커와 "정보 없음" 툴팁 반환
+        tooltipText += `<br>작년 입시 결과 정보 없음`;
+        return {
+            color: INITIAL_MARKER_COLOR, // config.ts에 정의된 회색
+            tooltipText
+        };
+    }
         // 평균 diff로 색상 결정
         let avgDiff = 0;
         if (diffs.length > 0) {
             avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
         }
+
+        //TODO DELETE
+              
         // 빨강-초록-파랑 그라데이션
         // 빨강: diff >= 1
         // 빨강~초록: 0.3 < diff < 1
@@ -167,26 +178,34 @@ export function getMarkerColorAndTooltipInfo(
         let red = [255, 80, 80];
         let green = [80, 200, 120];
         let blue = [60, 120, 255];
+        let r, g, b;
+
         if (avgDiff >= 1) {
             [r, g, b] = red;
         } else if (avgDiff > 0.3) {
-            // 빨강~초록 그라데이션
+            // [수정됨] 초록색(green)에서 빨간색(red)으로 변하도록 수정
             const t = (avgDiff - 0.3) / (1 - 0.3);
-            r = Math.round(red[0] * (1 - t) + green[0] * t);
-            g = Math.round(red[1] * (1 - t) + green[1] * t);
-            b = Math.round(red[2] * (1 - t) + green[2] * t);
+            r = Math.round(green[0] * (1 - t) + red[0] * t); // green과 red 위치 변경
+            g = Math.round(green[1] * (1 - t) + red[1] * t);
+            b = Math.round(green[2] * (1 - t) + red[2] * t);
         } else if (avgDiff >= -0.3) {
             [r, g, b] = green;
         } else if (avgDiff > -1) {
-            // 초록~파랑 그라데이션
-            const t = (avgDiff + 0.3) / (1 - 0.3);
-            r = Math.round(green[0] * (1 - t) + blue[0] * t);
-            g = Math.round(green[1] * (1 - t) + blue[1] * t);
-            b = Math.round(green[2] * (1 - t) + blue[2] * t);
+            // [수정됨] 파란색(blue)에서 초록색(green)으로 변하도록 수정
+            // 1. 올바른 정규화 (min: -1, max: -0.3)
+            const t = (avgDiff - (-1)) / (-0.3 - (-1)); // (value - min) / (max - min)
+            // 2. 올바른 보간법 (t=0일때 blue, t=1일때 green)
+            r = Math.round(blue[0] * (1 - t) + green[0] * t); // blue와 green 위치 및 순서
+            g = Math.round(blue[1] * (1 - t) + green[1] * t);
+            b = Math.round(blue[2] * (1 - t) + green[2] * t);
         } else {
             [r, g, b] = blue;
         }
         color = `rgb(${r}, ${g}, ${b})`;
+
+         // =================================================================
+        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 디버깅 정보 추가 시작 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+        // =================================================================
 
         // 사용자 점수(여러 세부전형이 동일하다면 하나만, 다르면 평균)
         let userScoreText = '';
@@ -201,14 +220,25 @@ export function getMarkerColorAndTooltipInfo(
             userScoreText = '정보 없음';
         }
         tooltipText += `<br><b>나의 점수:</b> ${userScoreText}`;
-        // 세부전형별 점수 모두 나열 (세부 전형명 포함)
+        // 세부전형별 점수 모두 나열
         universityData.forEach(u => {
             const result = u.admissionTypeResults[typeKey as keyof FilteredUniversityAdmissionResults];
-            // 'u.admissionType'을 'u.detailAdmissionType'으로 변경
             if (u.detailAdmissionType && result && result.lastYearAvgConvertedScore !== undefined) {
                 tooltipText += `<br>• ${u.detailAdmissionType} - 작년 점수: ${result.lastYearAvgConvertedScore}`;
             }
         });
+
+        // 구분선 및 디버그 정보 추가
+        tooltipText += `<br><hr style='margin: 5px 0; border-top: 1px dashed #aaa;'>`;
+        tooltipText += `<div style='font-size: 0.8em; color: #555;'>`;
+        tooltipText += `<b>[Debug Info]</b>`;
+        tooltipText += `<br><b>평균 점수 차 (avgDiff):</b> ${avgDiff.toFixed(3)}`;
+        tooltipText += `<br><b>계산된 차이 목록 (diffs):</b> [${diffs.map(d => d.toFixed(2)).join(', ')}]`;
+        tooltipText += `</div>`;
+        
+        // =================================================================
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 디버깅 정보 추가 끝 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        // =================================================================
     }
     return { color, tooltipText };
 }
@@ -226,7 +256,7 @@ export function updateMarkers() {
         return;
     }
 
-    // 대학-학과-전형 유형별로 그룹핑
+    // 그룹핑 함수 (기존과 동일)
     function groupBy(arr: FilteredUniversity[], keyFn: (u: FilteredUniversity) => string) {
         const map = new Map<string, FilteredUniversity[]>();
         arr.forEach(u => {
@@ -236,27 +266,41 @@ export function updateMarkers() {
         });
         return Array.from(map.values());
     }
-    // admissionType이 '경쟁률'이면 전형 구분 없이 대학-학과별 그룹핑, 아니면 대학-학과-전형 유형별 그룹핑
+
     let groups: FilteredUniversity[][];
-    if (currentAdmissionTypeFilter === '경쟁률') {
+    const isCompetitionRateFilter = currentAdmissionTypeFilter === '경쟁률';
+
+    // 그룹핑 로직 (기존과 동일)
+    if (isCompetitionRateFilter) {
         groups = groupBy(currentFilteredUniversities, u => `${u.universityName}|${u.departmentName}`);
     } else {
-        // 전형 유형별 그룹핑 (예: 제주대-생명공학부-교과)
         const typeKeyForMarkerLookup: { [key in AdmissionTypeFilterKey]?: keyof FilteredUniversityAdmissionResults } = {
-            '수능': 'suneung',
-            '교과': 'gyogwa',
-            '종합': 'jonghap'
+            '수능': 'suneung', '교과': 'gyogwa', '종합': 'jonghap'
         };
         const typeKey = typeKeyForMarkerLookup[currentAdmissionTypeFilter];
         groups = groupBy(currentFilteredUniversities, u => `${u.universityName}|${u.departmentName}|${typeKey}`);
     }
+
+    // 마커 생성 루프
     groups.forEach(group => {
         const base = group[0];
         if (!base.location || typeof base.location.latitude !== 'number' || typeof base.location.longitude !== 'number') {
             console.warn(`University ${base.universityName} has invalid location data. Skipping marker.`);
             return;
         }
+        
+        // 1. 색상과 툴팁 정보를 먼저 가져옴
         const { color, tooltipText } = getMarkerColorAndTooltipInfo(group, currentAdmissionTypeFilter);
+
+        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+        // 2. 새로운 필터링 조건 적용
+        // 성적 기반 필터이고, 편차 범위가 8이 아니고, 마커 색상이 회색(정보 없음)이면, 이 마커를 건너뜀
+        if (!isCompetitionRateFilter && currentScoreDifferenceTolerance !== 8 && color === INITIAL_MARKER_COLOR) {
+            return; // 마커를 지도에 추가하지 않고 다음 그룹으로 넘어감
+        }
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+        // 3. 필터링을 통과한 마커만 지도에 추가
         const markerHtml = createMarkerIconSVG(color);
         const icon = L.divIcon({
             html: markerHtml,

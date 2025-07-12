@@ -14,9 +14,7 @@ func main() {
 	// --- 1. 초기화 작업 ---
 
 	// DB 초기화 함수 호출
-	// 이 함수는 handlers 패키지 내부에 구현되어 있어야 합니다.
 	handlers.InitDB()
-	// 프로그램 종료 시 DB 연결이 안전하게 닫히도록 defer 사용
 	defer handlers.CloseDB()
 
 	// CSV 파일 경로 정의
@@ -30,24 +28,6 @@ func main() {
 
 	// Gin 엔진 생성
 	r := gin.Default()
-
-	// API 라우트 그룹 설정
-	api := r.Group("/api")
-	{
-		// 이 핸들러들은 DB를 사용할 수도, 안 할 수도 있습니다.
-		// handlers 패키지 내부 구현에 따라 동작합니다.
-		api.POST("/universities/filter", handlers.FilterUniversities)
-
-		// 표준 http.HandlerFunc를 Gin 핸들러로 래핑
-		api.GET("/subjects", gin.WrapF(handlers.Subject))
-		api.GET("/map/initial-data", gin.WrapF(handlers.GetUniversitiesHandler))
-	}
-
-	// /map/initial-data는 DB에서 초기 대학 목록을 가져올 가능성이 높습니다.
-
-	// --- 3. 정적 파일 및 SPA 라우팅 설정 (제거됨) ---
-	// 프론트엔드는 Github Pages 등을 통해 별도로 호스팅됩니다.
-	// 더 이상 백엔드에서 정적 파일을 직접 제공하지 않습니다.
 
 	// CORS 처리를 위한 미들웨어 추가
 	r.Use(func(c *gin.Context) {
@@ -64,18 +44,46 @@ func main() {
 		c.Next()
 	})
 
+	// API 라우트 그룹 설정
+	api := r.Group("/api")
+	{
+		api.POST("/universities/filter", handlers.FilterUniversities)
+		api.GET("/subjects", gin.WrapF(handlers.Subject))
+		api.GET("/map/initial-data", gin.WrapF(handlers.GetUniversitiesHandler))
+	}
+
 	// 등록된 API 경로가 아닌 모든 요청에 대해 404 Not Found를 반환합니다.
 	r.NoRoute(func(c *gin.Context) {
 		c.Status(http.StatusNotFound)
 	})
 
-	// --- 4. 서버 실행 ---
+	// --- 3. 서버 실행 (HTTPS 및 리디렉션) ---
 
-	port := "8080"
-	log.Printf("서버가 %s 포트에서 시작됩니다.", port)
-	log.Printf("메인 페이지: http://localhost:%s/", port)
+	// 실제 서버 환경에서만 HTTPS를 적용합니다.
+	// Certbot이 생성한 인증서 경로 (Ubuntu 기준 표준 경로)
+	certFile := "/etc/letsencrypt/live/dotorimuuk.duckdns.org/fullchain.pem"
+	keyFile := "/etc/letsencrypt/live/dotorimuuk.duckdns.org/privkey.pem"
 
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to run server: %v", err)
+	// 80번 포트(HTTP)로 오는 요청을 443번 포트(HTTPS)로 리디렉션하는 서버를 고루틴으로 실행
+	go func() {
+		// 리디렉션을 위한 새 Gin 엔진
+		redirectRouter := gin.New()
+		redirectRouter.GET("/*path", func(c *gin.Context) {
+			// 요청된 호스트와 경로를 사용하여 HTTPS URL을 구성
+			redirectURL := "https://" + "dotorimuuk.duckdns.org" + c.Request.RequestURI
+			c.Redirect(http.StatusMovedPermanently, redirectURL)
+		})
+		log.Println("HTTP to HTTPS redirection server starting on port 80")
+		// 80번 포트에서 리디렉션 서버 실행
+		if err := redirectRouter.Run(":80"); err != nil {
+			// Fatalf를 사용하면 메인 프로세스가 종료되므로 Printf 사용
+			log.Printf("Could not start HTTP redirection server: %v", err)
+		}
+	}()
+
+	// 443번 포트에서 메인 HTTPS 서버 실행
+	log.Println("Starting HTTPS server on port 443")
+	if err := r.RunTLS(":443", certFile, keyFile); err != nil {
+		log.Fatalf("Failed to run HTTPS server: %v", err)
 	}
 }

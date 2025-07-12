@@ -10,7 +10,7 @@ import (
 )
 
 // 데이터베이스 파일 경로 (필요하다면 설정 파일이나 환경 변수에서 읽어오도록 개선 가능)
-const dbFile = "./universities.db"
+const dbFile = "./data/universities.db"
 
 // 전역 데이터베이스 연결 풀 (이 패키지 내에서 사용)
 var db *sql.DB

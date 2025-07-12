@@ -5,7 +5,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"strings"
 	"univ/handlers" // 프로젝트 모듈 이름이 'univ'라고 가정
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +40,7 @@ func main() {
 
 		// 표준 http.HandlerFunc를 Gin 핸들러로 래핑
 		api.GET("/subjects", gin.WrapF(handlers.Subject))
-		r.GET("/map/initial-data", gin.WrapF(handlers.GetUniversitiesHandler))
+		api.GET("/map/initial-data", gin.WrapF(handlers.GetUniversitiesHandler))
 	}
 
 	// /map/initial-data는 DB에서 초기 대학 목록을 가져올 가능성이 높습니다.

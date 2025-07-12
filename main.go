@@ -41,10 +41,10 @@ func main() {
 
 		// 표준 http.HandlerFunc를 Gin 핸들러로 래핑
 		api.GET("/subjects", gin.WrapF(handlers.Subject))
+		r.GET("/map/initial-data", gin.WrapF(handlers.GetUniversitiesHandler))
 	}
 
 	// /map/initial-data는 DB에서 초기 대학 목록을 가져올 가능성이 높습니다.
-	r.GET("/map/initial-data", gin.WrapF(handlers.GetUniversitiesHandler))
 
 	// --- 3. 정적 파일 및 SPA 라우팅 설정 (제거됨) ---
 	// 프론트엔드는 Github Pages 등을 통해 별도로 호스팅됩니다.
